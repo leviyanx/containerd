@@ -1,4 +1,4 @@
-name: "cri plugin validation"
+name: "cri plugin integration test"
 on:
   push:
     branches:
@@ -12,7 +12,7 @@ permissions:  # added using https://github.com/step-security/secure-workflows
 
 jobs:
   mirror:
-    name: "cri integration testing"
+    name: "cri integration test"
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -55,15 +55,6 @@ jobs:
         shell: bash
         run: |
           cd integration
-          sudo go test -v -run "TestContainerdImage" .
-          sudo go test -v -run "TestContainerList" .
-          
-          # run all cri integration tests
-          # FOCUS=TestContainerdImage make cri-integration
+          sudo go test -v -run "TestContainerdImage" . -test.v
 
-      - name: Cri integration test
-        shell: bash
-        run: |
-          # run all cri integration tests
-          sudo -E PATH=$PATH make cri-integration
 
