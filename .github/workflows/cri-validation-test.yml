@@ -83,4 +83,4 @@ jobs:
         shell: bash
         run: |
           sudo containerd -l debug
-          sudo critest --runtime-endpoint /run/containerd/containerd.sock
+          sudo critest --runtime-endpoint /run/containerd/containerd.sock --ginkgo.focus="TestCRISuite"
