@@ -1,0 +1,69 @@
+name: "cri plugin validation"
+on:
+  push:
+    branches:
+      - cri-test
+  pull_request:
+    branches:
+      - cri-test
+
+permissions:  # added using https://github.com/step-security/secure-workflows
+  contents: read
+
+jobs:
+  mirror:
+    name: "cri integration testing"
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    defaults:
+      run:
+        working-directory: src/github.com/containerd/containerd
+
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.19.6'
+
+      - uses: actions/checkout@v3
+        with:
+          path: src/github.com/containerd/containerd
+
+      - name: Set env
+        shell: bash
+        run: |
+          echo "GOPATH=${{ github.workspace }}" >> $GITHUB_ENV
+          echo "${{ github.workspace }}/bin" >> $GITHUB_PATH
+
+      - name: Install containerd dependencies
+        env:
+          RUNC_FLAVOR: ${{ matrix.runc }}
+          GOFLAGS: -modcacherw
+        run: |
+          sudo apt-get install -y gperf
+          sudo -E PATH=$PATH script/setup/install-seccomp
+
+      - name: Install containerd
+        env:
+          CGO_ENABLED: 1
+        run: |
+          make binaries GO_BUILD_FLAGS="-mod=vendor" GO_BUILDTAGS="no_btrfs"
+          sudo -E PATH=$PATH make install
+
+      - name: Cri pull image test
+        shell: bash
+        run: |
+          cd integration
+          sudo go test -v -run "TestContainerdImage" . -test.root
+          sudo go test -v -run "TestContainerList" . -test.root
+          
+          # run all cri integration tests
+          # FOCUS=TestContainerdImage make cri-integration
+
+      - name: Cri integration test
+        shell: bash
+        run: |
+          # run all cri integration tests
+          sudo -E PATH=$PATH make cri-integration
+
