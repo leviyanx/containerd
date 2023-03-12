@@ -3,9 +3,13 @@ on:
   push:
     branches:
       - cri-test
+      - wasm
+      - image_pull
   pull_request:
     branches:
       - cri-test
+      - wasm
+      - image_pull
 
 permissions:  # added using https://github.com/step-security/secure-workflows
   contents: read
