@@ -55,8 +55,8 @@ jobs:
         shell: bash
         run: |
           cd integration
-          sudo go test -v -run "TestContainerdImage" . -test.root
-          sudo go test -v -run "TestContainerList" . -test.root
+          sudo go test -v -run "TestContainerdImage" .
+          sudo go test -v -run "TestContainerList" .
           
           # run all cri integration tests
           # FOCUS=TestContainerdImage make cri-integration
