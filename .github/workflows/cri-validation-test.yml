@@ -82,5 +82,5 @@ jobs:
       - name: Cri validate test
         shell: bash
         run: |
-          containerd -l debug
-          critest --runtime-endpoint /run/containerd/containerd.sock
+          sudo containerd -l debug
+          sudo critest --runtime-endpoint /run/containerd/containerd.sock
