@@ -89,6 +89,19 @@ import (
 
 // PullImage pulls an image with authentication config.
 func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest) (*runtime.PullImageResponse, error) {
+	// TODO: Check whether the imageSpec contains a "wasm." annotation.
+	if hasWasmValue(r.GetImage().GetAnnotations()) {
+		//name := r.GetImage().GetAnnotations()["wasm.module.name"]
+		//version := r.GetImage().GetAnnotations()["wasm.module.version"]
+		//url := r.GetImage().GetImage()
+		_ = r.GetImage().GetAnnotations()["wasm.module.name"]
+		_ = r.GetImage().GetAnnotations()["wasm.module.version"]
+		_ = r.GetImage().GetImage()
+		// TODO: Pull wasm from url
+		// TODO: Save wasm to wasm store
+		//return &runtime.PullImageResponse{ImageRef: imageID}, nil
+	}
+
 	imageRef := r.GetImage().GetImage()
 	namedRef, err := distribution.ParseDockerRef(imageRef)
 	if err != nil {
@@ -173,6 +186,12 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 	// check the actual state in containerd before using the image or returning status of the
 	// image.
 	return &runtime.PullImageResponse{ImageRef: imageID}, nil
+}
+
+func hasWasmValue(annotations map[string]string) bool {
+	_, nameExists := annotations["wasm.module.name"]
+	_, versionExists := annotations["wasm.module.version"]
+	return nameExists && versionExists
 }
 
 // ParseAuth parses AuthConfig and returns username and password/secret required by containerd.
