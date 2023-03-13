@@ -30,12 +30,14 @@ import (
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/services/introspection"
 	"github.com/containerd/containerd/snapshots"
+	"github.com/containerd/containerd/wasmmodules"
 )
 
 type services struct {
 	contentStore         content.Store
 	imageStore           images.Store
 	containerStore       containers.Store
+	wasmModuleStore      wasmmodules.Store
 	namespaceStore       namespaces.Store
 	snapshotters         map[string]snapshots.Snapshotter
 	taskService          tasks.TasksClient
@@ -52,6 +54,13 @@ type ServicesOpt func(c *services)
 func WithContentStore(contentStore content.Store) ServicesOpt {
 	return func(s *services) {
 		s.contentStore = contentStore
+	}
+}
+
+// WithWasmModuleStore sets the wasm store.
+func WithWasmModuleStore(wasmModuleStore wasmmodules.Store) ServicesOpt {
+	return func(s *services) {
+		s.wasmModuleStore = wasmModuleStore
 	}
 }
 
