@@ -19,6 +19,7 @@ package monitor
 import (
 	"context"
 	"fmt"
+	"github.com/containerd/containerd/wasmmodules"
 	"sync"
 	"time"
 
@@ -107,6 +108,9 @@ func getServicesOpts(ic *plugin.InitContext) ([]containerd.ServicesOpt, error) {
 	for s, fn := range map[string]func(interface{}) containerd.ServicesOpt{
 		services.ContentService: func(s interface{}) containerd.ServicesOpt {
 			return containerd.WithContentStore(s.(content.Store))
+		},
+		services.WasmModulesService: func(s interface{}) containerd.ServicesOpt {
+			return containerd.WithWasmModuleStore(s.(wasmmodules.Store))
 		},
 		services.ImagesService: func(s interface{}) containerd.ServicesOpt {
 			return containerd.WithImageClient(s.(images.ImagesClient))
