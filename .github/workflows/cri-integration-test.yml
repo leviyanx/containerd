@@ -4,12 +4,12 @@ on:
     branches:
       - cri-test
       - wasm
-      - image_pull
+      - wasm_image
   pull_request:
     branches:
       - cri-test
       - wasm
-      - image_pull
+      - wasm_image
 
 permissions:  # added using https://github.com/step-security/secure-workflows
   contents: read
