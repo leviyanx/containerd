@@ -15,9 +15,6 @@ type WasmModule struct {
 	// Target describes the root content for this wasm module
 	Target WasmModuleSpec
 
-	// Annotations contains arbitrary metadata relating to the targeted wasm module.
-	Anonotations map[string]string
-
 	CreatedAt, UpdatedAt time.Time
 }
 
@@ -30,6 +27,9 @@ type WasmModuleSpec struct {
 
 	// URL specifies the URL from which this wasm module MAY be downloaded
 	URL string
+
+	// Annotations contains arbitrary metadata relating to the targeted wasm module.
+	Annotations map[string]string
 }
 
 // Store and interact with wasm modules
