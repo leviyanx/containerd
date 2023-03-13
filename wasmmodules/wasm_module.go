@@ -22,6 +22,9 @@ type WasmModuleSpec struct {
 	// Digest is the digest of the wasm module
 	Digest digest.Digest
 
+	// Size is the size of the wasm module
+	Size int64
+
 	// Name of the wasm runtime running the module
 	Runtime string
 
