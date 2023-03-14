@@ -19,6 +19,11 @@ type WasmModule struct {
 }
 
 type WasmModuleSpec struct {
+	// Basic info >>>
+	Author string
+	// <<< Basic info
+
+	// Descriptor >>>
 	// Digest is the digest of the wasm module
 	Digest digest.Digest
 
@@ -33,6 +38,12 @@ type WasmModuleSpec struct {
 
 	// Annotations contains arbitrary metadata relating to the targeted wasm module.
 	Annotations map[string]string
+	// <<< Descriptor
+
+	// Config >>>
+	// Cmd defines the default command for the wasm module / wasm instance
+	Cmd []string
+	// <<< Config
 }
 
 // Store and interact with wasm modules
