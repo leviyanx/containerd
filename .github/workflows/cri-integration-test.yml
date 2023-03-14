@@ -74,6 +74,7 @@ jobs:
         shell: bash
         run: |
           cd integration
+          sudo go test -v -run "TestPullImage" . -test.v
           sudo go test -v -run "TestContainerdImage" . -test.v
 
 
