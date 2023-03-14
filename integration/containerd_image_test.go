@@ -31,6 +31,87 @@ import (
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
+// Test to test the CRI plugin should see the image pulled by CRI plugin.
+func TestPullImage(t *testing.T) {
+	var testImage = GetImage(BusyBox)
+	ctx := context.Background()
+
+	t.Logf("make sure the test image doesn't exist in the cri plugin")
+	i, err := imageService.ImageStatus(&runtime.ImageSpec{Image: testImage})
+	require.NoError(t, err)
+	if i != nil {
+		require.NoError(t, imageService.RemoveImage(&runtime.ImageSpec{Image: testImage}))
+	}
+
+	t.Logf("pull the image into the cri plugin")
+	_, err = imageService.PullImage(&runtime.ImageSpec{Image: testImage}, nil, nil)
+	assert.NoError(t, err)
+	defer func() {
+		// Make sure the image is cleaned up in any case.
+		if err := containerdClient.ImageService().Delete(ctx, testImage); err != nil {
+			assert.True(t, errdefs.IsNotFound(err), err)
+		}
+		assert.NoError(t, imageService.RemoveImage(&runtime.ImageSpec{Image: testImage}))
+	}()
+
+	t.Logf("the image should be seen in the cri plugin")
+	var id string
+	checkImage := func() (bool, error) {
+		img, err := imageService.ImageStatus(&runtime.ImageSpec{Image: testImage})
+		if err != nil {
+			return false, err
+		}
+		if img == nil {
+			t.Logf("Image %q not show up in the cri plugin yet", testImage)
+			return false, nil
+		}
+		id = img.Id
+		img, err = imageService.ImageStatus(&runtime.ImageSpec{Image: id})
+		if err != nil {
+			return false, err
+		}
+		if img == nil {
+			// We always generate image id as a reference first, it must
+			// be ready here.
+			return false, errors.New("can't reference image by id")
+		}
+		if len(img.RepoTags) != 1 {
+			// RepoTags must have been populated correctly.
+			return false, fmt.Errorf("unexpected repotags: %+v", img.RepoTags)
+		}
+		if img.RepoTags[0] != testImage {
+			return false, fmt.Errorf("unexpected repotag %q", img.RepoTags[0])
+		}
+		return true, nil
+	}
+	require.NoError(t, Eventually(checkImage, 100*time.Millisecond, 10*time.Second))
+	require.NoError(t, Consistently(checkImage, 100*time.Millisecond, time.Second))
+	defer func() {
+		t.Logf("image should still be seen by id if only tag get deleted")
+		if err := containerdClient.ImageService().Delete(ctx, testImage); err != nil {
+			assert.True(t, errdefs.IsNotFound(err), err)
+		}
+		assert.NoError(t, Consistently(func() (bool, error) {
+			img, err := imageService.ImageStatus(&runtime.ImageSpec{Image: id})
+			if err != nil {
+				return false, err
+			}
+			return img != nil, nil
+		}, 100*time.Millisecond, time.Second))
+		t.Logf("image should be removed from the cri plugin if all references get deleted")
+		if err := containerdClient.ImageService().Delete(ctx, id); err != nil {
+			assert.True(t, errdefs.IsNotFound(err), err)
+		}
+		assert.NoError(t, Eventually(func() (bool, error) {
+			img, err := imageService.ImageStatus(&runtime.ImageSpec{Image: id})
+			if err != nil {
+				return false, err
+			}
+			return img == nil, nil
+		}, 100*time.Millisecond, 10*time.Second))
+	}()
+}
+
 // Test to test the CRI plugin should see image pulled into containerd directly.
 func TestContainerdImage(t *testing.T) {
 	var testImage = GetImage(BusyBox)
