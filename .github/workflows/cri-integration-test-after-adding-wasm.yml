@@ -74,4 +74,4 @@ jobs:
         shell: bash
         run: |
           cd integration
-          sudo go test -v -run "TestWasmModuleInCRI" . -test.v
+          sudo go test -v -run "TestWasmModuleInCri" . -test.v

@@ -29,7 +29,7 @@ import (
 )
 
 // Test to test the wasm module operations in CRI plugin.
-func TestWasmModuleInCRI(t *testing.T) {
+func TestWasmModuleInCri(t *testing.T) {
 	testWasmModuleName = "wasi_example_main" // This is the name of the wasm module
 	testWasmModuleAnnotation := map[string]string{
 		"wasm.module.url": "https://github.com/leviyanx/wasm-program-image/raw/main/wasi/wasi_example_main.wasm",
