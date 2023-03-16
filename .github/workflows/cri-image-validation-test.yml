@@ -78,6 +78,11 @@ jobs:
           sudo tar zxvf crictl-$VERSION-linux-amd64.tar.gz -C /usr/local/bin
           rm -f crictl-$VERSION-linux-amd64.tar.gz
 
+      - name: Set crictl use containerd
+        shell: bash
+        run: |
+          sudo crictl config --runtime-endpoint unix:///var/run/containerd/containerd.sock --image-endpoint unix:///var/run/containerd/containerd.sock
+
       - name: Crictl pull image test
         shell: bash
         run: |
