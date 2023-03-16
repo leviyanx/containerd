@@ -1,4 +1,4 @@
-name: "cri plugin integration test"
+name: "cri plugin integration test after adding wasm"
 on:
   push:
     branches:
@@ -16,7 +16,7 @@ permissions:  # added using https://github.com/step-security/secure-workflows
 
 jobs:
   mirror:
-    name: "cri integration test"
+    name: "cri integration test after adding wasm"
     runs-on: ubuntu-latest
     permissions:
       packages: write
