@@ -92,7 +92,7 @@ jobs:
           # list
           sudo crictl images
           # info
-          sudo inspecti busybox
+          sudo crictl inspecti busybox
           # delete
           sudo crictl rmi busybox
           # list
