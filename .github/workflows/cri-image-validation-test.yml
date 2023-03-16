@@ -81,7 +81,8 @@ jobs:
       - name: Set crictl use containerd
         shell: bash
         run: |
-          sudo crictl config --runtime-endpoint unix:///var/run/containerd/containerd.sock --image-endpoint unix:///var/run/containerd/containerd.sock
+          sudo crictl config runtime-endpoint unix:///var/run/containerd/containerd.sock 
+          sudo crictl config image-endpoint unix:///var/run/containerd/containerd.sock
 
       - name: Crictl pull image test
         shell: bash
