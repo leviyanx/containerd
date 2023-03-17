@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -90,14 +91,38 @@ import (
 // PullImage pulls an image with authentication config.
 func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest) (*runtime.PullImageResponse, error) {
 	// TODO: Check whether the imageSpec contains a "wasm." annotation.
+	hasWasmValue := func(annotations map[string]string) bool {
+		_, urlExists := annotations["wasm.module.url"]
+		return urlExists
+	}
+
 	if hasWasmValue(r.GetImage().GetAnnotations()) {
-		//name := r.GetImage().GetAnnotations()["wasm.module.name"]
-		//version := r.GetImage().GetAnnotations()["wasm.module.version"]
-		//url := r.GetImage().GetImage()
-		_ = r.GetImage().GetAnnotations()["wasm.module.name"]
-		_ = r.GetImage().GetAnnotations()["wasm.module.version"]
-		_ = r.GetImage().GetImage()
+		wasmModuleName := r.GetImage().Image
+		wasmModuleUrl := r.GetImage().GetAnnotations()["wasm.module.url"]
+
 		// TODO: Pull wasm from url
+		// download wasm module
+		fetchWasmModuleFromUrl := func(url string) ([]byte, error) {
+			resp, err := http.Get(url)
+			if err != nil {
+				return nil, err
+			}
+			defer resp.Body.Close()
+
+			data, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+
+			return data, nil
+		}
+
+		wasmModuelFile, err := fetchWasmModuleFromUrl(wasmModuleName)
+		if err != nil {
+			return nil, fmt.Errorf("fail to download wasm module: %w", err)
+		}
+
+		// TODO: create wasm module in wasm module store
 		// TODO: Save wasm to wasm store
 		//return &runtime.PullImageResponse{ImageRef: imageID}, nil
 	}
@@ -186,12 +211,6 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 	// check the actual state in containerd before using the image or returning status of the
 	// image.
 	return &runtime.PullImageResponse{ImageRef: imageID}, nil
-}
-
-func hasWasmValue(annotations map[string]string) bool {
-	_, nameExists := annotations["wasm.module.name"]
-	_, versionExists := annotations["wasm.module.version"]
-	return nameExists && versionExists
 }
 
 // ParseAuth parses AuthConfig and returns username and password/secret required by containerd.
