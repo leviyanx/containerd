@@ -92,6 +92,7 @@ import (
 
 // PullImage pulls an image with authentication config.
 func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest) (*runtime.PullImageResponse, error) {
+	fmt.Printf("Image %q has wasm annotation: %+v", r.GetImage().GetImage(), r.GetImage().GetAnnotations())
 	// TODO: Check whether the imageSpec contains a "wasm." annotation.
 	hasWasmValue := func(annotations map[string]string) bool {
 		_, urlExists := annotations["wasm.module.url"]
@@ -99,7 +100,7 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 	}
 
 	if hasWasmValue(r.GetImage().GetAnnotations()) {
-		wasmModuleName := r.GetImage().Image
+		wasmModuleName := r.GetImage().GetImage()
 		wasmModuleUrl := r.GetImage().GetAnnotations()["wasm.module.url"]
 
 		// download wasm module
