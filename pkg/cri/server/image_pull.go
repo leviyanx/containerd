@@ -22,6 +22,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io"
 	"net"
 	"net/http"
@@ -92,8 +93,7 @@ import (
 
 // PullImage pulls an image with authentication config.
 func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest) (*runtime.PullImageResponse, error) {
-	log.G(ctx).Debugf("Image %q has wasm annotation: %+v", r.GetImage().GetImage(), r.GetImage().GetAnnotations())
-	fmt.Printf("Image %q has wasm annotation: %+v", r.GetImage().GetImage(), r.GetImage().GetAnnotations())
+	logrus.Infof("Image %q has wasm annotation: %+v", r.GetImage().GetImage(), r.GetImage().GetAnnotations())
 	// TODO: Check whether the imageSpec contains a "wasm." annotation.
 	hasWasmValue := func(annotations map[string]string) bool {
 		_, urlExists := annotations["wasm.module.url"]
