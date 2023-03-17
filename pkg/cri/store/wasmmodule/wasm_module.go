@@ -2,7 +2,6 @@ package wasmmodule
 
 import (
 	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/wasmmodules"
 	"sync"
 	"time"
 )
@@ -26,9 +25,34 @@ type WasmModule struct {
 	Size int64
 
 	// WasmModuleSpec describes basic information about the wasm module
-	WasmModuleSpec wasmmodules.WasmModuleSpec
+	WasmModuleSpec WasmModuleSpec
 
 	CreatedAt, UpdatedAt time.Time
+}
+
+type WasmModuleSpec struct {
+	// Basic info >>>
+	Author string
+	// <<< Basic info
+
+	// Descriptor >>>
+	// Size is the size of the wasm module
+	Size int64
+
+	// Name of the wasm runtime running the module
+	Runtime string
+
+	// URL specifies the URL from which this wasm module MAY be downloaded
+	URL string
+
+	// Annotations contains arbitrary metadata relating to the targeted wasm module.
+	Annotations map[string]string
+	// <<< Descriptor
+
+	// Config >>>
+	// Cmd defines the default command for the wasm module / wasm instance
+	Cmd []string
+	// <<< Config
 }
 
 // Store stores all wasm modules
