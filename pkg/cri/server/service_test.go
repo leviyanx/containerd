@@ -33,6 +33,7 @@ import (
 	"github.com/containerd/containerd/pkg/cri/store/label"
 	sandboxstore "github.com/containerd/containerd/pkg/cri/store/sandbox"
 	snapshotstore "github.com/containerd/containerd/pkg/cri/store/snapshot"
+	wasmmodulestore "github.com/containerd/containerd/pkg/cri/store/wasmmodule"
 	ostesting "github.com/containerd/containerd/pkg/os/testing"
 	"github.com/containerd/containerd/pkg/registrar"
 )
@@ -64,6 +65,7 @@ func newTestCRIService() *criService {
 		sandboxStore:       sandboxstore.NewStore(labels),
 		imageStore:         imagestore.NewStore(nil),
 		snapshotStore:      snapshotstore.NewStore(),
+		wasmModuleStore:    wasmmodulestore.NewStore(nil),
 		sandboxNameIndex:   registrar.NewRegistrar(),
 		containerStore:     containerstore.NewStore(labels),
 		containerNameIndex: registrar.NewRegistrar(),

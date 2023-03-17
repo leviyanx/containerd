@@ -45,6 +45,7 @@ import (
 	imagestore "github.com/containerd/containerd/pkg/cri/store/image"
 	sandboxstore "github.com/containerd/containerd/pkg/cri/store/sandbox"
 	snapshotstore "github.com/containerd/containerd/pkg/cri/store/snapshot"
+	wasmmoduelstore "github.com/containerd/containerd/pkg/cri/store/wasmmodule"
 	ctrdutil "github.com/containerd/containerd/pkg/cri/util"
 	osinterface "github.com/containerd/containerd/pkg/os"
 	"github.com/containerd/containerd/pkg/registrar"
@@ -95,6 +96,8 @@ type criService struct {
 	imageStore *imagestore.Store
 	// snapshotStore stores information of all snapshots.
 	snapshotStore *snapshotstore.Store
+	// wasmModuleStore stores all resources associated with wasm modules.
+	wasmModuleStore *wasmmoduelstore.Store
 	// netPlugin is used to setup and teardown network when run/stop pod sandbox.
 	netPlugin map[string]cni.CNI
 	// client is an instance of the containerd client
@@ -132,6 +135,7 @@ func NewCRIService(config criconfig.Config, client *containerd.Client) (CRIServi
 		containerStore:              containerstore.NewStore(labels),
 		imageStore:                  imagestore.NewStore(client),
 		snapshotStore:               snapshotstore.NewStore(),
+		wasmModuleStore:             wasmmoduelstore.NewStore(client),
 		sandboxNameIndex:            registrar.NewRegistrar(),
 		containerNameIndex:          registrar.NewRegistrar(),
 		initialized:                 atomic.NewBool(false),
