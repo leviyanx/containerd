@@ -23,8 +23,6 @@ const (
 	SnapshotsService = "snapshots-service"
 	// ImagesService is id of images service.
 	ImagesService = "images-service"
-	// WasmModulesService is id of wasmmodules service.
-	WasmModulesService = "wasmmodules-service"
 	// ContainersService is id of containers service.
 	ContainersService = "containers-service"
 	// TasksService is id of tasks service.
