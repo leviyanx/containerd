@@ -73,5 +73,6 @@ jobs:
       - name: Cri pull image test
         shell: bash
         run: |
+          sudo containerd -l debug
           cd integration
           sudo go test -v -run "TestWasmModuleInCri" . -test.v
