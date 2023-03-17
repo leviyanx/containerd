@@ -59,6 +59,9 @@ type WasmModuleSpec struct {
 type Store struct {
 	lock sync.RWMutex
 
+	// wasm module name set (name - id)
+	nameSet map[string]string
+
 	// client is the containerd client
 	client *containerd.Client
 
@@ -68,7 +71,8 @@ type Store struct {
 
 func NewStore(client *containerd.Client) *Store {
 	return &Store{
-		client: client,
+		client:  client,
+		nameSet: make(map[string]string),
 		store: &store{
 			wasmModules: make(map[string]WasmModule),
 			idSet:       make(map[string]string),
@@ -78,8 +82,6 @@ func NewStore(client *containerd.Client) *Store {
 
 type store struct {
 	lock sync.RWMutex
-	// wasm module name set (name - id)
-	nameSet map[string]string
 	// map: id - wasm module
 	wasmModules map[string]WasmModule
 	// wasm module id set (id - image)
