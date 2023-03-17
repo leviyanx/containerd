@@ -17,6 +17,7 @@
 package server
 
 import (
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
@@ -45,6 +46,7 @@ import (
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	criconfig "github.com/containerd/containerd/pkg/cri/config"
+	"github.com/containerd/containerd/pkg/cri/store/wasmmodule"
 )
 
 // For image management:
@@ -100,7 +102,6 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 		wasmModuleName := r.GetImage().Image
 		wasmModuleUrl := r.GetImage().GetAnnotations()["wasm.module.url"]
 
-		// TODO: Pull wasm from url
 		// download wasm module
 		fetchWasmModuleFromUrl := func(url string) ([]byte, error) {
 			resp, err := http.Get(url)
@@ -117,14 +118,46 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 			return data, nil
 		}
 
-		wasmModuelFile, err := fetchWasmModuleFromUrl(wasmModuleName)
+		wasmModuleFile, err := fetchWasmModuleFromUrl(wasmModuleName)
 		if err != nil {
 			return nil, fmt.Errorf("fail to download wasm module: %w", err)
 		}
 
-		// TODO: create wasm module in wasm module store
-		// TODO: Save wasm to wasm store
-		//return &runtime.PullImageResponse{ImageRef: imageID}, nil
+		// generate wasm module id
+		hasher := sha256.New()
+		hasher.Write(wasmModuleFile)
+		wasmModuleId := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+
+		// generate wasm module file path
+		wasmModuleFilePath := filepath.Join("/wasm", wasmModuleName)
+
+		// create wasm module
+		wasmModule := wasmmodule.WasmModule{
+			ID:       wasmModuleId,
+			Name:     wasmModuleName,
+			Filepath: wasmModuleFilePath,
+			WasmModuleSpec: wasmmodule.WasmModuleSpec{
+				URL: wasmModuleUrl,
+			},
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+
+		// Save wasm to wasm store
+		err = c.wasmModuleStore.Add(wasmModule)
+		if err != nil {
+			return nil, fmt.Errorf("fail to save wasm module: %w", err)
+		}
+
+		// store wasm module file in disk after succeed to save wasm module to store
+		err = c.os.WriteFile(wasmModuleFilePath, wasmModuleFile, 0644)
+		if err != nil {
+			return nil, fmt.Errorf("fail to save wasm module in disk: %w", err)
+		}
+
+		log.G(ctx).Debugf("PullImage: wasm module %q with wasm module id %q", wasmModuleName, wasmModuleId)
+
+		return &runtime.PullImageResponse{ImageRef: wasmModuleId}, nil
 	}
 
 	imageRef := r.GetImage().GetImage()
