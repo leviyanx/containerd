@@ -1,6 +1,7 @@
 package wasmmodule
 
 import (
+	"fmt"
 	"github.com/containerd/containerd"
 	"sync"
 	"time"
@@ -75,15 +76,44 @@ func NewStore(client *containerd.Client) *Store {
 		nameSet: make(map[string]string),
 		store: &store{
 			wasmModules: make(map[string]WasmModule),
-			idSet:       make(map[string]string),
 		},
 	}
+}
+
+// Add adds a new wasm module to the store.
+func (s *Store) Add(wasmModule WasmModule) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if _, ok := s.nameSet[wasmModule.Name]; ok {
+		return fmt.Errorf("wasm module %q already exists", wasmModule.Name)
+	}
+
+	// store the wasm module into the store
+	err := s.store.add(&wasmModule)
+	if err != nil {
+		return fmt.Errorf("failed to add wasm module %q: %v", wasmModule.Name, err)
+	}
+
+	// update the name set
+	s.nameSet[wasmModule.Name] = wasmModule.ID
+	return nil
 }
 
 type store struct {
 	lock sync.RWMutex
 	// map: id - wasm module
 	wasmModules map[string]WasmModule
-	// wasm module id set (id - image)
-	idSet map[string]string
+}
+
+func (s *store) add(wasmModule *WasmModule) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if _, ok := s.wasmModules[wasmModule.ID]; ok {
+		return fmt.Errorf("wasm module %q already exists", wasmModule.ID)
+	}
+
+	s.wasmModules[wasmModule.ID] = *wasmModule
+	return nil
 }
