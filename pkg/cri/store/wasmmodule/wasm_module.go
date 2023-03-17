@@ -39,6 +39,16 @@ type Store struct {
 	store *store
 }
 
+func NewStore(client *containerd.Client) *Store {
+	return &Store{
+		client: client,
+		store: &store{
+			wasmModules: make(map[string]WasmModule),
+			idSet:       make(map[string]string),
+		},
+	}
+}
+
 type store struct {
 	lock sync.RWMutex
 	// map: id - wasm module
