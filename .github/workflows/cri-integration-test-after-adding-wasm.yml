@@ -73,5 +73,11 @@ jobs:
       - name: Cri pull image test
         shell: bash
         run: |
+          sudo containerd -l debug & > /tmp/containerd.out
+          containerd_pid=$!
+          sleep 5
+          
           cd integration
           sudo go test -v -run "TestWasmModuleInCri" . -test.v
+          
+          sudo kill $containerd_pid
