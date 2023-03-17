@@ -13,6 +13,10 @@ type WasmModule struct {
 	// ID of the wasm module. Normally the digest of wasm module
 	ID string
 
+	// Name of the wasm module.
+	// Required
+	Name string
+
 	// ChainID is the chainID of the wasm module
 	ChainID string
 
