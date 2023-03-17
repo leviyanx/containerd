@@ -20,6 +20,9 @@ type WasmModule struct {
 	// ChainID is the chainID of the wasm module
 	ChainID string
 
+	// Filepath is the path that store wasm module file in local.
+	Filepath string
+
 	Size int64
 
 	// WasmModuleSpec describes basic information about the wasm module
