@@ -54,6 +54,8 @@ func NewStore(client *containerd.Client) *Store {
 
 type store struct {
 	lock sync.RWMutex
+	// wasm module name set (name - id)
+	nameSet map[string]string
 	// map: id - wasm module
 	wasmModules map[string]WasmModule
 	// wasm module id set (id - image)
