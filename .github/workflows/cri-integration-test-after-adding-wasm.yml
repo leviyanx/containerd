@@ -48,13 +48,6 @@ jobs:
           sudo apt-get install -y gperf
           sudo -E PATH=$PATH script/setup/install-seccomp
 
-      - name: Install containerd
-        env:
-          CGO_ENABLED: 1
-        run: |
-          make binaries GO_BUILD_FLAGS="-mod=vendor" GO_BUILDTAGS="no_btrfs"
-          sudo -E PATH=$PATH make install
-
       - name: Install runc
         shell: bash
         run: |
@@ -69,6 +62,19 @@ jobs:
           sudo mkdir -p /opt/cni/bin
           sudo tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-v1.1.1.tgz
           rm cni-plugins-linux-amd64-v1.1.1.tgz
+
+      - name: Install protobuf
+        shell: bash
+        run: |
+          wget -c https://github.com/protocolbuffers/protobuf/releases/download/v3.11.4/protoc-3.11.4-linux-x86_64.zip
+          sudo unzip protoc-3.11.4-linux-x86_64.zip -d /usr/local
+
+      - name: Install containerd
+        env:
+          CGO_ENABLED: 1
+        run: |
+          make binaries GO_BUILD_FLAGS="-mod=vendor" GO_BUILDTAGS="no_btrfs"
+          sudo -E PATH=$PATH make install
 
       - name: Install crictl
         shell: bash
