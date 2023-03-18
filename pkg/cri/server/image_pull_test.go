@@ -343,7 +343,7 @@ func TestPullWasmModule(t *testing.T) {
 					},
 				},
 			},
-			expectedOpts: "N2U5ZDM5ZDUwNDdkNDU2ODI3OTJiOTkxOTRkMDI1NzQ0NTNkYTU2MGZmNDcyMmRkNTQ2ZDJjYjVmMGM4OWE4NA==",
+			expectedOpts: "fp051QR9RWgnkrmRlNAldEU9pWD_RyLdVG0stfDImoQ=",
 		},
 	} {
 		t.Logf("TestCase %q", desc)
