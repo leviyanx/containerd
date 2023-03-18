@@ -34,8 +34,11 @@ import (
 // Test to test the wasm module operations in CRI plugin.
 func TestWasmModuleInCri(t *testing.T) {
 	testWasmModuleName := "wasi_example_main" // This is the name of the wasm module
-	testWasmModuleAnnotation := map[string]string{
-		"wasm.module.url": "https://github.com/leviyanx/wasm-program-image/raw/main/wasi/wasi_example_main.wasm",
+	image := &runtime.ImageSpec{
+		Image: testWasmModuleName,
+		Annotations: map[string]string{
+			"wasm.module.url": "https://github.com/leviyanx/wasm-program-image/raw/main/wasi/wasi_example_main.wasm",
+		},
 	}
 
 	t.Logf("make sure the test wasm moduel doesn't exist in the cri plugin")
@@ -46,7 +49,7 @@ func TestWasmModuleInCri(t *testing.T) {
 	}
 
 	t.Logf("pull the wasm module into the cri plugin")
-	_, err = imageService.PullImage(&runtime.ImageSpec{Image: testWasmModuleName, Annotations: testWasmModuleAnnotation}, nil, nil)
+	_, err = imageService.PullImage(image, nil, nil)
 	assert.NoError(t, err)
 	defer func() {
 		assert.NoError(t, imageService.RemoveImage(&runtime.ImageSpec{Image: testWasmModuleName}))
