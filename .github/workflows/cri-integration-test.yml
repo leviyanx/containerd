@@ -1,15 +1,6 @@
 name: "cri plugin integration test"
 on:
-  push:
-    branches:
-      - cri-test
-      - wasm
-      - wasm_image
-  pull_request:
-    branches:
-      - cri-test
-      - wasm
-      - wasm_image
+  workflow_dispatch:
 
 permissions:  # added using https://github.com/step-security/secure-workflows
   contents: read
