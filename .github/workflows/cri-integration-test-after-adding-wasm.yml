@@ -48,7 +48,7 @@ jobs:
           sudo apt-get install -y gperf
           sudo -E PATH=$PATH script/setup/install-seccomp
 
-      - name: Install and containerd
+      - name: Install containerd
         shell: bash
         run: |
           # clean
