@@ -70,6 +70,20 @@ jobs:
           sudo tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-v1.1.1.tgz
           rm cni-plugins-linux-amd64-v1.1.1.tgz
 
+      - name: Install crictl
+        shell: bash
+        run: |
+          VERSION="v1.26.0"
+          wget https://github.com/kubernetes-sigs/cri-tools/releases/download/$VERSION/crictl-$VERSION-linux-amd64.tar.gz
+          sudo tar zxvf crictl-$VERSION-linux-amd64.tar.gz -C /usr/local/bin
+          rm -f crictl-$VERSION-linux-amd64.tar.gz
+
+      - name: Set crictl use containerd
+        shell: bash
+        run: |
+          sudo crictl config runtime-endpoint unix:///var/run/containerd/containerd.sock 
+          sudo crictl config image-endpoint unix:///var/run/containerd/containerd.sock
+
       - name: Cri pull image test
         shell: bash
         run: |
