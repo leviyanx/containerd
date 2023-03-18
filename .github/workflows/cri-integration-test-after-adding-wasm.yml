@@ -93,6 +93,5 @@ jobs:
       - name: Cri pull image test
         shell: bash
         run: |
-          sudo apt install libbtrfs-dev
-          sudo apt install btrfs-progs
-          FOCUS=TestWasmModuleInCri make cri-integration
+          cd integration
+          sudo "PATH=$PATH" env go test -v -run "TestWasmModuleInCri" . -test.v
