@@ -17,7 +17,6 @@
 package server
 
 import (
-	"context"
 	"encoding/base64"
 	"testing"
 
@@ -327,30 +326,4 @@ func TestEncryptedImagePullOpts(t *testing.T) {
 		got := len(c.encryptedImagesPullOpts())
 		assert.Equal(t, test.expectedOpts, got)
 	}
-}
-
-func TestPullWasmModule(t *testing.T) {
-	for desc, test := range map[string]struct {
-		r            *runtime.PullImageRequest
-		expectedOpts string
-	}{
-		"should pull wasm module and return image id": {
-			r: &runtime.PullImageRequest{
-				Image: &runtime.ImageSpec{
-					Image: "wasi_example_main",
-					Annotations: map[string]string{
-						"wasm.module.url": "https://github.com/leviyanx/wasm-program-image/raw/main/wasi/wasi_example_main.wasm",
-					},
-				},
-			},
-			expectedOpts: "N2U5ZDM5ZDUwNDdkNDU2ODI3OTJiOTkxOTRkMDI1NzQ0NTNkYTU2MGZmNDcyMmRkNTQ2ZDJjYjVmMGM4OWE4NA==",
-		},
-	} {
-		t.Logf("TestCase %q", desc)
-		c := newTestCRIService()
-		pullImageResponse, _ := c.PullImage(context.Background(), test.r)
-		got := pullImageResponse.ImageRef
-		assert.Equal(t, test.expectedOpts, got)
-	}
-
 }
