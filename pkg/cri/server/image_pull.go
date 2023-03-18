@@ -120,7 +120,7 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 			return data, nil
 		}
 
-		wasmModuleFile, err := fetchWasmModuleFromUrl(wasmModuleName)
+		wasmModuleFile, err := fetchWasmModuleFromUrl(wasmModuleUrl)
 		if err != nil {
 			return nil, fmt.Errorf("fail to download wasm module: %w", err)
 		}
