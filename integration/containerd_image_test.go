@@ -52,6 +52,7 @@ func TestWasmModuleInCri(t *testing.T) {
 	_, err = imageService.PullImage(image, nil, nil)
 	assert.NoError(t, err)
 	defer func() {
+		t.Logf("remove the wasm module from the cri plugin")
 		assert.NoError(t, imageService.RemoveImage(&runtime.ImageSpec{Image: testWasmModuleName}))
 	}()
 
