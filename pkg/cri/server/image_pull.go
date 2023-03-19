@@ -120,6 +120,9 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 			return nil, fmt.Errorf("fail to download wasm module: %w", err)
 		}
 
+		// calculate size of wasm module
+		wasmModuleSize := int64(len(wasmModuleFile))
+
 		// generate wasm module id
 		hasher := sha256.New()
 		hasher.Write(wasmModuleFile)
@@ -134,7 +137,8 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 			Name:     wasmModuleName,
 			Filepath: wasmModuleFilePath,
 			WasmModuleSpec: wasmmodule.WasmModuleSpec{
-				URL: wasmModuleUrl,
+				URL:  wasmModuleUrl,
+				Size: wasmModuleSize,
 			},
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
