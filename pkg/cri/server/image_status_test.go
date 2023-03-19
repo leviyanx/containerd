@@ -17,6 +17,7 @@
 package server
 
 import (
+	"github.com/containerd/containerd/pkg/cri/store/wasmmodule"
 	"testing"
 
 	imagespec "github.com/opencontainers/image-spec/specs-go/v1"
@@ -67,6 +68,44 @@ func TestImageStatus(t *testing.T) {
 	t.Logf("should return correct image status for exist image")
 	resp, err = c.ImageStatus(context.Background(), &runtime.ImageStatusRequest{
 		Image: &runtime.ImageSpec{Image: testID},
+	})
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+	assert.Equal(t, expected, resp.GetImage())
+}
+
+func TestWasmStatus(t *testing.T) {
+	testID := "fp051QR9RWgnkrmRlNAldEU9pWD_RyLdVG0stfDImoQ=1234"
+	testName := "test-module-1"
+	wasmModule := wasmmodule.WasmModule{
+		ID:       testID,
+		Name:     testName,
+		Filepath: "/tmp/test.wasm",
+		Size:     1234,
+	}
+	expected := &runtime.Image{
+		Id:          testID,
+		RepoTags:    []string{testID},
+		RepoDigests: []string{testID},
+		Size_:       uint64(1234),
+		Username:    "",
+	}
+
+	c := newTestCRIService()
+	t.Logf("should return nil wasm spec without error for non-exist wasm")
+	resp, err := c.ImageStatus(context.Background(), &runtime.ImageStatusRequest{
+		Image: &runtime.ImageSpec{Image: testID, Annotations: map[string]string{"wasm.module.url": "https://example.com/wasm.wasm"}},
+	})
+	assert.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Nil(t, resp.GetImage())
+
+	c.wasmModuleStore, err = wasmmodule.NewFakeStore([]wasmmodule.WasmModule{wasmModule})
+	assert.NoError(t, err)
+
+	t.Logf("should return correct wasm status for exist wasm")
+	resp, err = c.ImageStatus(context.Background(), &runtime.ImageStatusRequest{
+		Image: &runtime.ImageSpec{Image: testName, Annotations: map[string]string{"wasm.module.url": "https://example.com/wasm.wasm"}},
 	})
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
