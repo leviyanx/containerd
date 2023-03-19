@@ -3,6 +3,7 @@ package wasmmodule
 import (
 	"fmt"
 	"github.com/containerd/containerd"
+	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"sync"
 	"time"
 )
@@ -29,6 +30,12 @@ type WasmModule struct {
 	WasmModuleSpec WasmModuleSpec
 
 	CreatedAt, UpdatedAt time.Time
+}
+
+func IsWasmModule(image v1.ImageSpec) bool {
+	// if the annotation has the wasm module url item, it is a wasm module
+	_, urlExists := image.GetAnnotations()["wasm.module.url"]
+	return urlExists
 }
 
 type WasmModuleSpec struct {

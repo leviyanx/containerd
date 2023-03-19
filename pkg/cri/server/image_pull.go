@@ -47,7 +47,7 @@ import (
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	criconfig "github.com/containerd/containerd/pkg/cri/config"
-	"github.com/containerd/containerd/pkg/cri/store/wasmmodule"
+	wasmmodule "github.com/containerd/containerd/pkg/cri/store/wasmmodule"
 )
 
 // For image management:
@@ -94,13 +94,8 @@ import (
 // PullImage pulls an image with authentication config.
 func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest) (*runtime.PullImageResponse, error) {
 	logrus.Infof("Image %q has wasm annotation: %+v", r.GetImage().GetImage(), r.GetImage().GetAnnotations())
-	// TODO: Check whether the imageSpec contains a "wasm." annotation.
-	hasWasmValue := func(annotations map[string]string) bool {
-		_, urlExists := annotations["wasm.module.url"]
-		return urlExists
-	}
-
-	if hasWasmValue(r.GetImage().GetAnnotations()) {
+	// Check whether the imageSpec contains a "wasm." annotation.
+	if wasmmodule.IsWasmModule(*r.GetImage()) {
 		wasmModuleName := r.GetImage().GetImage()
 		wasmModuleUrl := r.GetImage().GetAnnotations()["wasm.module.url"]
 
