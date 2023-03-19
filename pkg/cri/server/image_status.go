@@ -19,10 +19,10 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/log"
 	imagestore "github.com/containerd/containerd/pkg/cri/store/image"
+	"github.com/containerd/containerd/pkg/cri/store/wasmmodule"
 
 	imagespec "github.com/opencontainers/image-spec/specs-go/v1"
 	"golang.org/x/net/context"
@@ -33,6 +33,25 @@ import (
 // TODO(random-liu): We should change CRI to distinguish image id and image spec. (See
 // kubernetes/kubernetes#46255)
 func (c *criService) ImageStatus(ctx context.Context, r *runtime.ImageStatusRequest) (*runtime.ImageStatusResponse, error) {
+	if wasmmodule.IsWasmModule(*r.GetImage()) {
+		wasmModule, err := c.wasmModuleStore.Get(r.GetImage().GetImage())
+		if err != nil {
+			if errdefs.IsNotFound(err) {
+				// return empty without error when image not found.
+				return &runtime.ImageStatusResponse{}, nil
+			}
+			return nil, fmt.Errorf("failed to get wasm module %q : %w", r.GetImage().GetImage(), err)
+		}
+
+		runtimeImage := wasmToCRIImage(wasmModule)
+		info, err := c.wasmToCRIImageInfo(ctx, &wasmModule, r.GetVerbose())
+
+		return &runtime.ImageStatusResponse{
+			Image: runtimeImage,
+			Info:  info,
+		}, nil
+	}
+
 	image, err := c.localResolve(r.GetImage().GetImage())
 	if err != nil {
 		if errdefs.IsNotFound(err) {
@@ -74,6 +93,25 @@ func toCRIImage(image imagestore.Image) *runtime.Image {
 	return runtimeImage
 }
 
+func wasmToCRIImage(wasmModule wasmmodule.WasmModule) *runtime.Image {
+	runtimeImage := &runtime.Image{
+		Id:          wasmModule.ID,
+		RepoTags:    []string{wasmModule.ID},
+		RepoDigests: []string{wasmModule.ID},
+		Size_:       uint64(wasmModule.Size),
+	}
+
+	// no user(uid, username) in wasm module
+	user := ""
+	uid, username := getUserFromImage(user)
+	if uid != nil {
+		runtimeImage.Uid = &runtime.Int64Value{Value: *uid}
+	}
+	runtimeImage.Username = username
+
+	return runtimeImage
+}
+
 // TODO (mikebrow): discuss moving this struct and / or constants for info map for some or all of these fields to CRI
 type verboseImageInfo struct {
 	ChainID   string          `json:"chainID"`
@@ -91,6 +129,31 @@ func (c *criService) toCRIImageInfo(ctx context.Context, image *imagestore.Image
 	imi := &verboseImageInfo{
 		ChainID:   image.ChainID,
 		ImageSpec: image.ImageSpec,
+	}
+
+	m, err := json.Marshal(imi)
+	if err == nil {
+		info["info"] = string(m)
+	} else {
+		log.G(ctx).WithError(err).Errorf("failed to marshal info %v", imi)
+		info["info"] = err.Error()
+	}
+
+	return info, nil
+}
+
+func (c *criService) wasmToCRIImageInfo(ctx context.Context, wasmModule *wasmmodule.WasmModule, verbose bool) (map[string]string, error) {
+	if !verbose {
+		return nil, nil
+	}
+
+	info := make(map[string]string)
+
+	imi := &verboseImageInfo{
+		ChainID: "wasm-has-no-chain-id",
+		ImageSpec: imagespec.Image{
+			Created: &wasmModule.CreatedAt,
+		},
 	}
 
 	m, err := json.Marshal(imi)

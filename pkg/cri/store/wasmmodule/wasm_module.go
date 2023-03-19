@@ -3,6 +3,7 @@ package wasmmodule
 import (
 	"fmt"
 	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/errdefs"
 	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"sync"
 	"time"
@@ -142,7 +143,7 @@ func (s *Store) Delete(name string) error {
 func (s *Store) Get(name string) (WasmModule, error) {
 	id, err := s.Resolve(name)
 	if err != nil {
-		return WasmModule{}, err
+		return WasmModule{}, errdefs.ErrNotFound
 	}
 
 	return s.store.get(id)
@@ -172,7 +173,7 @@ func (s *store) get(id string) (WasmModule, error) {
 
 	wasmModule, ok := s.wasmModules[id]
 	if !ok {
-		return WasmModule{}, fmt.Errorf("wasm module %q not found in store", id)
+		return WasmModule{}, errdefs.ErrNotFound
 	}
 	return wasmModule, nil
 }
