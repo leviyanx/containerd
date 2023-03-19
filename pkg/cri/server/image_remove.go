@@ -18,10 +18,12 @@ package server
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/images"
 
+	wasmmodule "github.com/containerd/containerd/pkg/cri/store/wasmmodule"
 	"golang.org/x/net/context"
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -33,6 +35,36 @@ import (
 // Remove the whole image no matter the it's image id or reference. This is the
 // semantic defined in CRI now.
 func (c *criService) RemoveImage(ctx context.Context, r *runtime.RemoveImageRequest) (*runtime.RemoveImageResponse, error) {
+	if wasmmodule.IsWasmModule(*r.GetImage()) {
+		// find the module in store
+		wasmModuleName := r.GetImage().GetImage()
+		_, err := c.wasmModuleStore.Resolve(wasmModuleName)
+		if err != nil {
+			return nil, fmt.Errorf("there doesn't have the wasm module %q : %w", r.GetImage().GetImage(), err)
+		}
+
+		// TODO: put the function that delete the file in local disk into the store
+		// delete the file in local disk
+		wasmModule, err := c.wasmModuleStore.Get(wasmModuleName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get wasm module %q : %w", r.GetImage().GetImage(), err)
+		}
+		if _, err := c.os.Stat(wasmModule.Filepath); os.IsNotExist(err) {
+			return nil, fmt.Errorf("the wasm module file %q doesn't exist : %w", wasmModule.Filepath, err)
+		} else {
+			err := c.os.RemoveAll(wasmModule.Filepath)
+			if err != nil {
+				return nil, fmt.Errorf("failed to delete the wasm module file %q : %w", wasmModule.Filepath, err)
+			}
+		}
+
+		// delete the module and reference in store
+		if err := c.wasmModuleStore.Delete(wasmModuleName); err != nil {
+			return nil, fmt.Errorf("failed to delete wasm module %q : %w", r.GetImage().GetImage(), err)
+		}
+		return &runtime.RemoveImageResponse{}, nil
+	}
+
 	image, err := c.localResolve(r.GetImage().GetImage())
 	if err != nil {
 		if errdefs.IsNotFound(err) {

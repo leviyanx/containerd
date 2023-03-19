@@ -87,6 +87,18 @@ func NewStore(client *containerd.Client) *Store {
 	}
 }
 
+// Resolve resolves the name to the corresponding wasm module id.
+func (s *Store) Resolve(name string) (id string, err error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	id, ok := s.nameSet[name]
+	if !ok {
+		return "", fmt.Errorf("wasm module %q not found", name)
+	}
+	return id, nil
+}
+
 // Add adds a new wasm module to the store.
 func (s *Store) Add(wasmModule WasmModule) error {
 	s.lock.Lock()
@@ -107,6 +119,35 @@ func (s *Store) Add(wasmModule WasmModule) error {
 	return nil
 }
 
+func (s *Store) Delete(name string) error {
+	id, err := s.Resolve(name)
+	if err != nil {
+		return err
+	}
+
+	// delete the wasm module from the store
+	err = s.store.delete(id)
+	if err != nil {
+		return fmt.Errorf("failed to delete wasm module %q: %v", id, err)
+	}
+
+	// update the name set
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	delete(s.nameSet, name)
+
+	return nil
+}
+
+func (s *Store) Get(name string) (WasmModule, error) {
+	id, err := s.Resolve(name)
+	if err != nil {
+		return WasmModule{}, err
+	}
+
+	return s.store.get(id)
+}
+
 type store struct {
 	lock sync.RWMutex
 	// map: id - wasm module
@@ -122,5 +163,28 @@ func (s *store) add(wasmModule *WasmModule) error {
 	}
 
 	s.wasmModules[wasmModule.ID] = *wasmModule
+	return nil
+}
+
+func (s *store) get(id string) (WasmModule, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	wasmModule, ok := s.wasmModules[id]
+	if !ok {
+		return WasmModule{}, fmt.Errorf("wasm module %q not found in store", id)
+	}
+	return wasmModule, nil
+}
+
+func (s *store) delete(id string) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if _, ok := s.wasmModules[id]; !ok {
+		return fmt.Errorf("wasm module %q not found in store", id)
+	}
+
+	delete(s.wasmModules, id)
 	return nil
 }
