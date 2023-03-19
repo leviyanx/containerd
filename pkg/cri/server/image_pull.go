@@ -152,6 +152,13 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 		}
 
 		// store wasm module file in disk after succeed to save wasm module to store
+		wasmModulePath := filepath.Dir(wasmModuleFilePath) // store all wasm module
+		if _, err := c.os.Stat(wasmModulePath); os.IsNotExist(err) {
+			err := c.os.MkdirAll(wasmModulePath, 0755)
+			if err != nil {
+				return nil, fmt.Errorf("fail to create wasm module path: %w", err)
+			}
+		}
 		err = c.os.WriteFile(wasmModuleFilePath, wasmModuleFile, 0644)
 		if err != nil {
 			return nil, fmt.Errorf("fail to save wasm module in disk: %w", err)
