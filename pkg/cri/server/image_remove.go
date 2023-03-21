@@ -23,7 +23,6 @@ import (
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/images"
 
-	wasmmodule "github.com/containerd/containerd/pkg/cri/store/wasmmodule"
 	"golang.org/x/net/context"
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -35,13 +34,9 @@ import (
 // Remove the whole image no matter the it's image id or reference. This is the
 // semantic defined in CRI now.
 func (c *criService) RemoveImage(ctx context.Context, r *runtime.RemoveImageRequest) (*runtime.RemoveImageResponse, error) {
-	if wasmmodule.IsWasmModule(*r.GetImage()) {
+	if _, err := c.wasmModuleStore.Resolve(r.GetImage().GetImage()); err != nil {
 		// find the module in store
 		wasmModuleName := r.GetImage().GetImage()
-		_, err := c.wasmModuleStore.Resolve(wasmModuleName)
-		if err != nil {
-			return nil, fmt.Errorf("there doesn't have the wasm module %q : %w", r.GetImage().GetImage(), err)
-		}
 
 		// TODO: put the function that delete the file in local disk into the store
 		// delete the file in local disk
