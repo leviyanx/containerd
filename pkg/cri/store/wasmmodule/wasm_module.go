@@ -120,7 +120,7 @@ func (s *Store) Add(wasmModule WasmModule) error {
 func (s *Store) Delete(name string) error {
 	id, err := s.Resolve(name)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to resolve wasm module %q: %v", name, err)
 	}
 
 	// delete the wasm module from the store

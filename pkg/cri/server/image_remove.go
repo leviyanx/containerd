@@ -38,9 +38,16 @@ func (c *criService) RemoveImage(ctx context.Context, r *runtime.RemoveImageRequ
 		// find the module in store
 		wasmModuleName := r.GetImage().GetImage()
 
+		// get wasmModule from store
+		wasmModule, err := c.wasmModuleStore.Get(wasmModuleName)
+
+		// delete the module and reference in store
+		if err := c.wasmModuleStore.Delete(wasmModuleName); err != nil {
+			return nil, fmt.Errorf("failed to delete wasm module %q : %w", r.GetImage().GetImage(), err)
+		}
+
 		// TODO: put the function that delete the file in local disk into the store
 		// delete the file in local disk
-		wasmModule, err := c.wasmModuleStore.Get(wasmModuleName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get wasm module %q : %w", r.GetImage().GetImage(), err)
 		}
@@ -53,10 +60,6 @@ func (c *criService) RemoveImage(ctx context.Context, r *runtime.RemoveImageRequ
 			}
 		}
 
-		// delete the module and reference in store
-		if err := c.wasmModuleStore.Delete(wasmModuleName); err != nil {
-			return nil, fmt.Errorf("failed to delete wasm module %q : %w", r.GetImage().GetImage(), err)
-		}
 		return &runtime.RemoveImageResponse{}, nil
 	}
 
