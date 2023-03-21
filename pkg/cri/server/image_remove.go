@@ -34,7 +34,7 @@ import (
 // Remove the whole image no matter the it's image id or reference. This is the
 // semantic defined in CRI now.
 func (c *criService) RemoveImage(ctx context.Context, r *runtime.RemoveImageRequest) (*runtime.RemoveImageResponse, error) {
-	if _, err := c.wasmModuleStore.Resolve(r.GetImage().GetImage()); err != nil {
+	if _, err := c.wasmModuleStore.Resolve(r.GetImage().GetImage()); err == nil {
 		// find the module in store
 		wasmModuleName := r.GetImage().GetImage()
 
