@@ -136,9 +136,9 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 			ID:       wasmModuleId,
 			Name:     wasmModuleName,
 			Filepath: wasmModuleFilePath,
+			Size:     wasmModuleSize,
 			WasmModuleSpec: wasmmodule.WasmModuleSpec{
-				URL:  wasmModuleUrl,
-				Size: wasmModuleSize,
+				URL: wasmModuleUrl,
 			},
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),

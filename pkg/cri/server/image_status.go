@@ -98,7 +98,7 @@ func wasmToCRIImage(wasmModule wasmmodule.WasmModule) *runtime.Image {
 		Id:          wasmModule.ID,
 		RepoTags:    []string{wasmModule.ID},
 		RepoDigests: []string{wasmModule.ID},
-		Size_:       uint64(wasmModule.WasmModuleSpec.Size),
+		Size_:       uint64(wasmModule.Size),
 	}
 
 	// no user(uid, username) in wasm module
