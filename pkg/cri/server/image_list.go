@@ -34,5 +34,10 @@ func (c *criService) ListImages(ctx context.Context, r *runtime.ListImagesReques
 		images = append(images, toCRIImage(image))
 	}
 
+	wasmsInStore := c.wasmModuleStore.List()
+	for _, wasm := range wasmsInStore {
+		images = append(images, wasmToCRIImage(wasm))
+	}
+
 	return &runtime.ListImagesResponse{Images: images}, nil
 }

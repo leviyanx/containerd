@@ -26,7 +26,55 @@ import (
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	imagestore "github.com/containerd/containerd/pkg/cri/store/image"
+	wasmstore "github.com/containerd/containerd/pkg/cri/store/wasmmodule"
 )
+
+func TestListWasmModulesList(t *testing.T) {
+	c := newTestCRIService()
+	wasmsInStore := []wasmstore.WasmModule{
+		{
+			ID:       "fp051QR9RWgnkrmRlNAldEU9pWD_RyLdVG0stfDImoQ=1234",
+			Name:     "test-wasm-1",
+			Filepath: "test-wasm-1.wasm",
+			Size:     1000,
+		},
+		{
+			ID:       "alskdjfalskdjfalksdjfklasjdfljasdkfj",
+			Name:     "test-wasm-2",
+			Filepath: "test-wasm-2.wasm",
+			Size:     2000,
+		},
+	}
+	expect := []*runtime.Image{
+		{
+			Id:          "fp051QR9RWgnkrmRlNAldEU9pWD_RyLdVG0stfDImoQ=1234",
+			RepoTags:    []string{"fp051QR9RWgnkrmRlNAldEU9pWD_RyLdVG0stfDImoQ=1234"},
+			RepoDigests: []string{"fp051QR9RWgnkrmRlNAldEU9pWD_RyLdVG0stfDImoQ=1234"},
+			Size_:       uint64(1000),
+			Username:    "",
+		},
+		{
+			Id:          "alskdjfalskdjfalksdjfklasjdfljasdkfj",
+			RepoTags:    []string{"alskdjfalskdjfalksdjfklasjdfljasdkfj"},
+			RepoDigests: []string{"alskdjfalskdjfalksdjfklasjdfljasdkfj"},
+			Size_:       uint64(2000),
+			Username:    "",
+		},
+	}
+
+	var err error
+	c.wasmModuleStore, err = wasmstore.NewFakeStore(wasmsInStore)
+	assert.NoError(t, err)
+
+	resp, err := c.ListImages(context.Background(), &runtime.ListImagesRequest{})
+	assert.NoError(t, err)
+	require.NotNil(t, resp)
+	images := resp.GetImages()
+	assert.Len(t, images, len(expect))
+	for _, i := range expect {
+		assert.Contains(t, images, i)
+	}
+}
 
 func TestListImages(t *testing.T) {
 	c := newTestCRIService()

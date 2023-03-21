@@ -145,6 +145,9 @@ func (s *Store) Get(name string) (WasmModule, error) {
 
 	return s.store.get(id)
 }
+func (s *Store) List() []WasmModule {
+	return s.store.list()
+}
 
 type store struct {
 	lock sync.RWMutex
@@ -185,4 +188,16 @@ func (s *store) delete(id string) error {
 
 	delete(s.wasmModules, id)
 	return nil
+}
+
+func (s *store) list() []WasmModule {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	var wasmModules []WasmModule
+	for _, w := range s.wasmModules {
+		wasmModules = append(wasmModules, w)
+	}
+
+	return wasmModules
 }
