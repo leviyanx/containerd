@@ -94,7 +94,7 @@ func TestWasmStatus(t *testing.T) {
 	c := newTestCRIService()
 	t.Logf("should return nil wasm spec without error for non-exist wasm")
 	resp, err := c.ImageStatus(context.Background(), &runtime.ImageStatusRequest{
-		Image: &runtime.ImageSpec{Image: testID, Annotations: map[string]string{"wasm.module.url": "https://example.com/wasm.wasm"}},
+		Image: &runtime.ImageSpec{Image: testID},
 	})
 	assert.NoError(t, err)
 	require.NotNil(t, resp)
@@ -105,7 +105,7 @@ func TestWasmStatus(t *testing.T) {
 
 	t.Logf("should return correct wasm status for exist wasm")
 	resp, err = c.ImageStatus(context.Background(), &runtime.ImageStatusRequest{
-		Image: &runtime.ImageSpec{Image: testName, Annotations: map[string]string{"wasm.module.url": "https://example.com/wasm.wasm"}},
+		Image: &runtime.ImageSpec{Image: testName},
 	})
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)

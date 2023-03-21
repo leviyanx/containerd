@@ -33,23 +33,19 @@ import (
 // TODO(random-liu): We should change CRI to distinguish image id and image spec. (See
 // kubernetes/kubernetes#46255)
 func (c *criService) ImageStatus(ctx context.Context, r *runtime.ImageStatusRequest) (*runtime.ImageStatusResponse, error) {
-	if wasmmodule.IsWasmModule(*r.GetImage()) {
-		wasmModule, err := c.wasmModuleStore.Get(r.GetImage().GetImage())
-		if err != nil {
-			if errdefs.IsNotFound(err) {
-				// return empty without error when image not found.
-				return &runtime.ImageStatusResponse{}, nil
-			}
-			return nil, fmt.Errorf("failed to get wasm module %q : %w", r.GetImage().GetImage(), err)
-		}
-
+	if wasmModule, err := c.wasmModuleStore.Get(r.GetImage().GetImage()); err == nil {
+		// when can find the wasm module in store
 		runtimeImage := wasmToCRIImage(wasmModule)
 		info, err := c.wasmToCRIImageInfo(ctx, &wasmModule, r.GetVerbose())
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate wasm info: %w", err)
+		}
 
 		return &runtime.ImageStatusResponse{
 			Image: runtimeImage,
 			Info:  info,
 		}, nil
+
 	}
 
 	image, err := c.localResolve(r.GetImage().GetImage())

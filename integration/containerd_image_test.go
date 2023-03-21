@@ -42,7 +42,7 @@ func TestWasmModuleInCri(t *testing.T) {
 	}
 
 	t.Logf("make sure the test wasm moduel doesn't exist in the cri plugin")
-	i, err := imageService.ImageStatus(image)
+	i, err := imageService.ImageStatus(&runtime.ImageSpec{Image: testWasmModuleName})
 	require.NoError(t, err)
 	if i != nil {
 		require.NoError(t, imageService.RemoveImage(image))
