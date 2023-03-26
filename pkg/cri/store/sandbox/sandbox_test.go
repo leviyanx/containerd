@@ -94,6 +94,25 @@ func TestSandboxStore(t *testing.T) {
 			},
 			Status{State: StateReady},
 		),
+		"5wasm": NewSandbox(
+			Metadata{
+				ID:   "5wasm",
+				Name: "Sandbox-5wasm",
+				Config: &runtime.PodSandboxConfig{
+					Metadata: &runtime.PodSandboxMetadata{
+						Name:      "TestPod-5wasm",
+						Uid:       "TestUid-5wasm",
+						Namespace: "TestNamespace-5wasm",
+						Attempt:   1,
+					},
+					Annotations: map[string]string{
+						"wasm-sandbox": "1",
+					},
+				},
+				NetNSPath: "TestNetNS-5wasm",
+			},
+			Status{State: StateReady},
+		),
 	}
 	unknown := NewSandbox(
 		Metadata{
@@ -127,6 +146,10 @@ func TestSandboxStore(t *testing.T) {
 		"4abcd": {
 			Timestamp:            time.Now(),
 			UsageCoreNanoSeconds: 4,
+		},
+		"5wasm": {
+			Timestamp:            time.Now(),
+			UsageCoreNanoSeconds: 5,
 		},
 	}
 	assert := assertlib.New(t)
