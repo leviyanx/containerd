@@ -25,6 +25,7 @@ import (
 	"github.com/containerd/containerd/pkg/cri/store/label"
 	"github.com/containerd/containerd/pkg/cri/store/stats"
 	"github.com/containerd/containerd/pkg/cri/store/truncindex"
+	"github.com/containerd/containerd/pkg/cri/store/wasmmodule"
 	"github.com/containerd/containerd/pkg/netns"
 )
 
@@ -37,6 +38,8 @@ type Sandbox struct {
 	Status StatusStorage
 	// Container is the containerd sandbox container client.
 	Container containerd.Container
+	// Wasm is the wasm client.
+	Wasm wasmmodule.WasmInterface
 	// CNI network namespace client.
 	// For hostnetwork pod, this is always nil;
 	// For non hostnetwork pod, this should never be nil.

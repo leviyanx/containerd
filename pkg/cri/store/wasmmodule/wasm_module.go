@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+type WasmInterface interface {
+}
+
 // WasmModule (cache) contains all resources associated with the wasm module. All fields Must not be mutated
 // directly after created.
 type WasmModule struct {
