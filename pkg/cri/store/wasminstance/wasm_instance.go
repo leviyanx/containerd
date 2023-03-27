@@ -30,3 +30,12 @@ type Store struct {
 	idIndex       *truncindex.TruncIndex
 	labels        *label.Store
 }
+
+// NewStore creates a wasm instance store.
+func NewStore(labels *label.Store) *Store {
+	return &Store{
+		wasmInstances: make(map[string]WasmInstance),
+		idIndex:       truncindex.NewTruncIndex([]string{}),
+		labels:        labels,
+	}
+}
