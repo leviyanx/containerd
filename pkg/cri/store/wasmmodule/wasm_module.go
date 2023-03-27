@@ -9,9 +9,6 @@ import (
 	"time"
 )
 
-type WasmInterface interface {
-}
-
 // WasmModule (cache) contains all resources associated with the wasm module. All fields Must not be mutated
 // directly after created.
 type WasmModule struct {
@@ -34,6 +31,34 @@ type WasmModule struct {
 	WasmModuleSpec WasmModuleSpec
 
 	CreatedAt, UpdatedAt time.Time
+}
+
+func (w *WasmModule) GetID() string {
+	return w.ID
+}
+
+func (w *WasmModule) GetName() string {
+	return w.Name
+}
+
+func (w *WasmModule) GetChainID() string {
+	return w.ChainID
+}
+
+func (w *WasmModule) GetFilepath() string {
+	return w.Filepath
+}
+
+func (w *WasmModule) GetSize() int64 {
+	return w.Size
+}
+
+func (w *WasmModule) GetCreatedAt() time.Time {
+	return w.CreatedAt
+}
+
+func (w *WasmModule) GetUpdatedAt() time.Time {
+	return w.UpdatedAt
 }
 
 func IsWasmModule(image v1.ImageSpec) bool {
