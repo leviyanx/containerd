@@ -11,7 +11,7 @@ import (
 type WasmInterface interface {
 	ID() string
 
-	WasmModule(ctx context.Context) (wasmmodule.WasmModule, error)
+	GetWasmModule(ctx context.Context) (wasmmodule.WasmModule, error)
 }
 
 // WasmInstance contains all resources associated with the wasm instance.
@@ -21,6 +21,14 @@ type WasmInstance struct {
 
 	// WasmModule is the wasm module the wasm instance belongs to.
 	WasmModule wasmmodule.WasmModule
+}
+
+func (w *WasmInstance) ID() string {
+	return w.Metadata.ID
+}
+
+func (w *WasmInstance) GetWasmModule(ctx context.Context) (wasmmodule.WasmModule, error) {
+	return w.WasmModule, nil
 }
 
 // Store stores all wasm instances
