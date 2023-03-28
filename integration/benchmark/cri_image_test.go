@@ -84,6 +84,7 @@ func BenchmarkImageInCri(b *testing.B) {
 	i, err := imageService.ImageStatus(&runtime.ImageSpec{Image: testImage})
 	require.NoError(b, err)
 	if i != nil {
+		b.Logf("remove the image from the cri plugin")
 		require.NoError(b, imageService.RemoveImage(&runtime.ImageSpec{Image: testImage}))
 	}
 
