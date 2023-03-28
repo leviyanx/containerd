@@ -77,7 +77,7 @@ func BenchmarkWasmModuleInCri(b *testing.B) {
 }
 
 func BenchmarkImageInCri(b *testing.B) {
-	var testImage = "leviyanx/runc-wasm-example:v1.3"
+	var testImage = GetImage(BusyBox)
 	ctx := context.Background()
 
 	b.Logf("make sure the test image doesn't exist in the cri plugin")
