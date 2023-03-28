@@ -1,6 +1,10 @@
 package benchmark
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -70,4 +74,60 @@ func BenchmarkWasmModuleInCri(b *testing.B) {
 
 	require.NoError(b, Eventually(checkWasmModule, 100*time.Millisecond, 10*time.Second))
 	require.NoError(b, Consistently(checkWasmModule, 100*time.Millisecond, time.Second))
+}
+
+func BenchmarkImageInCri(b *testing.B) {
+	var testImage = "leviyanx/runc-wasm-example:v1.3"
+	ctx := context.Background()
+
+	b.Logf("make sure the test image doesn't exist in the cri plugin")
+	i, err := imageService.ImageStatus(&runtime.ImageSpec{Image: testImage})
+	require.NoError(b, err)
+	if i != nil {
+		require.NoError(b, imageService.RemoveImage(&runtime.ImageSpec{Image: testImage}))
+	}
+
+	b.Logf("pull the image into the cri plugin")
+	_, err = imageService.PullImage(&runtime.ImageSpec{Image: testImage}, nil, nil)
+	assert.NoError(b, err)
+	defer func() {
+		// Make sure the image is cleaned up in any case.
+		if err := containerdClient.ImageService().Delete(ctx, testImage); err != nil {
+			assert.True(b, errdefs.IsNotFound(err), err)
+		}
+		assert.NoError(b, imageService.RemoveImage(&runtime.ImageSpec{Image: testImage}))
+	}()
+
+	b.Logf("the image should be seen in the cri plugin")
+	var id string
+	checkImage := func() (bool, error) {
+		img, err := imageService.ImageStatus(&runtime.ImageSpec{Image: testImage})
+		if err != nil {
+			return false, err
+		}
+		if img == nil {
+			b.Logf("Image %q not show up in the cri plugin yet", testImage)
+			return false, nil
+		}
+		id = img.Id
+		img, err = imageService.ImageStatus(&runtime.ImageSpec{Image: id})
+		if err != nil {
+			return false, err
+		}
+		if img == nil {
+			// We always generate image id as a reference first, it must
+			// be ready here.
+			return false, errors.New("can't reference image by id")
+		}
+		if len(img.RepoTags) != 1 {
+			// RepoTags must have been populated correctly.
+			return false, fmt.Errorf("unexpected repotags: %+v", img.RepoTags)
+		}
+		if img.RepoTags[0] != testImage {
+			return false, fmt.Errorf("unexpected repotag %q", img.RepoTags[0])
+		}
+		return true, nil
+	}
+	require.NoError(b, Eventually(checkImage, 100*time.Millisecond, 10*time.Second))
+	require.NoError(b, Consistently(checkImage, 100*time.Millisecond, time.Second))
 }
