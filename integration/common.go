@@ -122,3 +122,20 @@ func EnsureImageExists(t *testing.T, imageName string) string {
 
 	return imgID
 }
+
+// EnsureWasmModuleExists pulls the given wasm module, ensures that no error was encountered
+// while pulling it.
+func EnsureWasmModuleExists(t *testing.T, image runtime.ImageSpec) string {
+	img, err := imageService.ImageStatus(&image)
+	require.NoError(t, err)
+	if img != nil {
+		t.Logf("Wasm module %q already exists, not pulling.", image.GetImage())
+		return img.Id
+	}
+
+	t.Logf("Pull test wasm module %q", image.GetImage())
+	imgID, err := imageService.PullImage(&image, nil, nil)
+	require.NoError(t, err)
+
+	return imgID
+}
