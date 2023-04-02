@@ -1,6 +1,8 @@
 package wasminstance
 
 import (
+	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/pkg/cri/store/label"
 	"github.com/containerd/containerd/pkg/cri/store/truncindex"
 	"github.com/containerd/containerd/pkg/cri/store/wasmmodule"
@@ -12,6 +14,8 @@ type WasmInterface interface {
 	ID() string
 
 	GetWasmModule(ctx context.Context) (wasmmodule.WasmModule, error)
+
+	Task(ctx context.Context, attach cio.Attach) (containerd.Task, error)
 }
 
 // WasmInstance contains all resources associated with the wasm instance.
