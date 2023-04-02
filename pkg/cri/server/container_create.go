@@ -19,6 +19,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"github.com/containerd/containerd/pkg/cri/store/wasmmodule"
 	"path/filepath"
 	"time"
 
@@ -49,6 +50,60 @@ func init() {
 
 // CreateContainer creates a new container in the given PodSandbox.
 func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateContainerRequest) (_ *runtime.CreateContainerResponse, retErr error) {
+	if wasmmodule.IsWasmModule(*r.GetConfig().GetImage()) {
+		//	// the image is wasm module
+		//	config := r.GetConfig()
+		//	log.G(ctx).Debugf("Cri Container config %+v", config)
+		//	sandboxConfig := r.GetSandboxConfig()
+		//	sandbox, err := c.sandboxStore.Get(r.GetPodSandboxId())
+		//	if err != nil {
+		//		return nil, fmt.Errorf("failed to find sandbox id %q: %w", r.GetPodSandboxId(), err)
+		//	}
+		//
+		//	sandboxID := sandbox.ID
+		//	task, err := sandbox.WasmInstance.Task(ctx, nil)
+		//	if err != nil {
+		//		return nil, fmt.Errorf("failed to get sandbox wasm instance task: %w", err)
+		//	}
+		//	sandboxPid := task.Pid()
+		//
+		//	id := util.GenerateID()
+		//	metadata := config.GetMetadata()
+		//	if metadata == nil {
+		//		return nil, errors.New("container config must include metadata")
+		//	}
+		//	wasmInstanceName := metadata.Name
+		//	name := makeContainerName(metadata, sandboxConfig.GetMetadata()) // unique name
+		//	log.G(ctx).Debugf("Generated id %q for wasm instance %q", id, name)
+		//
+		//	// reserve the name and id in a index store that container also use
+		//	if err = c.containerNameIndex.Reserve(name, id); err != nil {
+		//		return nil, fmt.Errorf("failed to reserve wasm instance name %q: %w", name, err)
+		//	}
+		//	defer func() {
+		//		// Release the name if the function returns with an error.
+		//		if retErr != nil {
+		//			c.containerNameIndex.ReleaseByName(name)
+		//		}
+		//	}
+		//
+		//	// Create initial internal wasm instance metadata.
+		//	meta := wasminstancestore.Metadata{
+		//		ID:        id,
+		//		Name:      name,
+		//		SandboxID: sandboxID,
+		//		Config:    config,
+		//	}
+		//
+		//	// Get the wasm module that wasm instance belongs to
+		//	wasmModule, err := c.wasmModuleStore.Get(config.GetImage().GetImage())
+		//	if err != nil {
+		//		return nil, fmt.Errorf("failed to find wasm module %q: %w", config.GetImage().GetImage(), err)
+		//	}
+		//
+		//	start := time.Now()
+	}
+
 	config := r.GetConfig()
 	log.G(ctx).Debugf("Container config %+v", config)
 	sandboxConfig := r.GetSandboxConfig()
