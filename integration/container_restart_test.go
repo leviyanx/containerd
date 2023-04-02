@@ -17,11 +17,52 @@
 package integration
 
 import (
+	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// Test to verify wasm instance can be restarted
+func TestWasmInstanceRestart(t *testing.T) {
+	t.Logf("Create a pod config and run wasm instance")
+	sb, sbConfig := PodSandboxConfigWithCleanup(t, "sandbox1", "restart")
+
+	wasmModule := &runtime.ImageSpec{
+		Image: "wasm-example",
+		Annotations: map[string]string{
+			"wasm.module.url": "https://github.com/leviyanx/wasm-program-image/raw/main/wasi/wasi_example_main.wasm",
+		},
+	}
+
+	EnsureWasmModuleExists(t, *wasmModule)
+
+	t.Logf("Create a container config and run container in a pod")
+	containerConfig := ContainerConfig(
+		"container1",
+		wasmModule.GetImage(),
+		WithTestLabels(),
+		WithTestAnnotations(),
+	)
+	cn, err := runtimeService.CreateContainer(sb, containerConfig, sbConfig)
+	require.NoError(t, err)
+	defer func() {
+		assert.NoError(t, runtimeService.RemoveContainer(cn))
+	}()
+	require.NoError(t, runtimeService.StartContainer(cn))
+	defer func() {
+		assert.NoError(t, runtimeService.StopContainer(cn, 10))
+	}()
+
+	t.Logf("Restart the wasm instance with same config")
+	require.NoError(t, runtimeService.StopContainer(cn, 10))
+	require.NoError(t, runtimeService.RemoveContainer(cn))
+
+	cn, err = runtimeService.CreateContainer(sb, containerConfig, sbConfig)
+	require.NoError(t, err)
+	require.NoError(t, runtimeService.StartContainer(cn))
+}
 
 // Test to verify container can be restarted
 func TestContainerRestart(t *testing.T) {
