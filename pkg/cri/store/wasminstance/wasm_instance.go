@@ -27,6 +27,23 @@ type WasmInstance struct {
 	WasmModule wasmmodule.WasmModule
 }
 
+// Opts sets specific information to newly created WasmInstance.
+type Opts func(*WasmInstance) error
+
+func NewWasmInstance(metadata Metadata, opts ...Opts) (WasmInstance, error) {
+	wasmInstance := WasmInstance{
+		Metadata: metadata,
+	}
+
+	for _, o := range opts {
+		if err := o(&wasmInstance); err != nil {
+			return WasmInstance{}, err
+		}
+	}
+
+	return wasmInstance, nil
+}
+
 func (w *WasmInstance) ID() string {
 	return w.Metadata.ID
 }
