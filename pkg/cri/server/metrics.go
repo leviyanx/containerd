@@ -35,6 +35,12 @@ var (
 	containerStopTimer   metrics.LabeledTimer
 	containerStartTimer  metrics.LabeledTimer
 
+	wasmInstanceListTimer   metrics.Timer
+	wasmInstanceCreateTimer metrics.LabeledTimer
+	wasmInstanceRemoveTimer metrics.LabeledTimer
+	wasmInstanceStartTimer  metrics.LabeledTimer
+	wasmInstanceStopTimer   metrics.LabeledTimer
+
 	networkPluginOperations        metrics.LabeledCounter
 	networkPluginOperationsErrors  metrics.LabeledCounter
 	networkPluginOperationsLatency metrics.LabeledTimer
@@ -57,6 +63,12 @@ func init() {
 	containerCreateTimer = ns.NewLabeledTimer("container_create", "time to create a container", "runtime")
 	containerStopTimer = ns.NewLabeledTimer("container_stop", "time to stop a container", "runtime")
 	containerStartTimer = ns.NewLabeledTimer("container_start", "time to start a container", "runtime")
+
+	wasmInstanceListTimer = ns.NewTimer("wasm_instance_list", "time to list wasm instances")
+	wasmInstanceCreateTimer = ns.NewLabeledTimer("wasm_instance_create", "time to create a wasm instance", "runtime")
+	wasmInstanceRemoveTimer = ns.NewLabeledTimer("wasm_instance_remove", "time to remove a wasm instance", "runtime")
+	wasmInstanceStartTimer = ns.NewLabeledTimer("wasm_instance_start", "time to start a wasm instance", "runtime")
+	wasmInstanceStopTimer = ns.NewLabeledTimer("wasm_instance_stop", "time to stop a wasm instance", "runtime")
 
 	networkPluginOperations = ns.NewLabeledCounter("network_plugin_operations_total", "cumulative number of network plugin operations by operation type", "operation_type")
 	networkPluginOperationsErrors = ns.NewLabeledCounter("network_plugin_operations_errors_total", "cumulative number of network plugin operations by operation type", "operation_type")
