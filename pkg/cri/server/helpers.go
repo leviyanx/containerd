@@ -67,6 +67,8 @@ const (
 	sandboxesDir = "sandboxes"
 	// containersDir contains all container root.
 	containersDir = "containers"
+	// wasmInstancesDir contains all wasm instances root.
+	wasmInstancesDir = "wasm-instances"
 	// Delimiter used to construct container/sandbox names.
 	nameDelimiter = "_"
 
@@ -140,6 +142,17 @@ func (c *criService) getContainerRootDir(id string) string {
 // e.g. named pipes.
 func (c *criService) getVolatileContainerRootDir(id string) string {
 	return filepath.Join(c.config.StateDir, containersDir, id)
+}
+
+// getWasmInstanceRootDir returns the root directory for managing wasm instance files,
+func (c *criService) getWasmInstanceRootDir(id string) string {
+	return filepath.Join(c.config.RootDir, wasmInstancesDir, id)
+}
+
+// getVolatileWasmInstanceRootDir returns the root directory for managing volatile wasm instance files,
+// e.g. named pipes.
+func (c *criService) getVolatileWasmInstanceRootDir(id string) string {
+	return filepath.Join(c.config.StateDir, wasmInstancesDir, id)
 }
 
 // criContainerStateToString formats CRI container state to string.
