@@ -21,6 +21,9 @@ type Metadata struct {
 	// Config is the CRI container config.
 	Config *runtime.ContainerConfig
 
+	// LogPath is the wasm instance log path.
+	LogPath string
+
 	// WasmModuleName is the name of the wasm module used by the wasm instance.
 	WasmModuleName string
 
