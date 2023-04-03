@@ -109,7 +109,19 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 			return nil, fmt.Errorf("failed to get sandbox container info: %w", err)
 		}
 
-		// TODO: create wasm instance root directory (but without volatile directory)
+		// create wasm instance root directory (but without volatile directory)
+		wasmInstanceRootDir := c.getWasmInstanceRootDir(id)
+		if err = c.os.MkdirAll(wasmInstanceRootDir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create wasm instance root directory %q: %w", wasmInstanceRootDir, err)
+		}
+		defer func() {
+			if retErr != nil {
+				if err = c.os.RemoveAll(wasmInstanceRootDir); err != nil {
+					log.G(ctx).WithError(err).Errorf("Failed to remove wasm instance root directory %q", wasmInstanceRootDir)
+				}
+			}
+		}()
+		meta.WasmInstanceRootDir = wasmInstanceRootDir
 
 		// NOTE: don't create wasm module volumes mounts
 		// NOTE: don't generate wasm instance mounts

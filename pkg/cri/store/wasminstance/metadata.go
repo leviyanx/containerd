@@ -29,6 +29,9 @@ type Metadata struct {
 	// LogPath is the wasm instance log path.
 	LogPath string
 
+	// WasmInstanceRootDir is the root directory of the wasm instance.
+	WasmInstanceRootDir string
+
 	// WasmModuleName is the name of the wasm module used by the wasm instance.
 	WasmModuleName string
 
