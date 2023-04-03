@@ -15,6 +15,11 @@ type Metadata struct {
 	// Name is the wasm instance name.
 	Name string
 
+	// Labels provide metadata extension for a wasm instance.
+	//
+	// These are optional and fully mutable.
+	Labels map[string]string
+
 	// WasmModuleID is the wasm module id the wasm instance belongs to.
 	SandboxID string
 
