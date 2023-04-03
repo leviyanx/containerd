@@ -101,6 +101,9 @@ type criService struct {
 	wasmModuleStore *wasmmodulestore.Store
 	// wasmInstanceStore stores all resources associated with wasm instances.
 	wasmInstanceStore *wasminstancestore.Store
+	// wasmModuleNameIndex stores all wasm module names and make sure each
+	// name is unique.
+	wasmInstanceNameIndex *registrar.Registrar
 	// netPlugin is used to setup and teardown network when run/stop pod sandbox.
 	netPlugin map[string]cni.CNI
 	// client is an instance of the containerd client
