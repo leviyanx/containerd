@@ -44,6 +44,12 @@ func NewWasmInstance(metadata Metadata, opts ...Opts) (WasmInstance, error) {
 	return wasmInstance, nil
 }
 
+// Delete deletes checkpoint for the wasm instance
+func (w *WasmInstance) Delete() error {
+	// TODO: call wasmInstance.status.Delete()
+	return nil
+}
+
 func (w *WasmInstance) ID() string {
 	return w.Metadata.ID
 }
