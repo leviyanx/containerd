@@ -156,6 +156,7 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 
 		// There is no image config label
 		wasmInstanceLabels := buildLabels(config.Labels, make(map[string]string), "wasm instance")
+		meta.Labels = wasmInstanceLabels
 
 		runtimeOptions, err := getRuntimeOptions(sandboxInfo)
 		if err != nil {
@@ -168,7 +169,6 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 		wasmInstance, err := wasminstance.NewWasmInstance(ctx, meta,
 			wasminstance.WithRuntime(sandboxInfo.Runtime.Name, runtimeOptions),
 			wasminstance.WithWasmModule(wasmModule),
-			wasminstance.WithLabels(wasmInstanceLabels),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create wasm instance for %q: %w", id, err)

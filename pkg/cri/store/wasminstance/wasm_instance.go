@@ -64,15 +64,6 @@ func WithWasmModule(wasmModule wasmmodule.WasmModule) NewWasmInstanceOpts {
 	}
 }
 
-// WithLabels sets the provided labels to the wasm instance.
-// The existing labels are cleared.
-func WithLabels(labels map[string]string) NewWasmInstanceOpts {
-	return func(ctx context.Context, w *WasmInstance) error {
-		w.Labels = labels
-		return nil
-	}
-}
-
 func NewWasmInstance(ctx context.Context, metadata Metadata, opts ...NewWasmInstanceOpts) (WasmInstance, error) {
 	wasmInstance := WasmInstance{
 		Metadata: metadata,
