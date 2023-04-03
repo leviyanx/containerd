@@ -3,6 +3,7 @@ package wasminstance
 import (
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/cio"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/pkg/cri/store/label"
 	"github.com/containerd/containerd/pkg/cri/store/truncindex"
 	"github.com/containerd/containerd/pkg/cri/store/wasmmodule"
@@ -73,4 +74,22 @@ func NewStore(labels *label.Store) *Store {
 		idIndex:       truncindex.NewTruncIndex([]string{}),
 		labels:        labels,
 	}
+}
+
+// Add a wasm instance to the store. Return store.ErrAlreadyExists if the
+// wasm instance already exists.
+func (s *Store) Add(w WasmInstance) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	// check if wasm instance already exists
+	if _, ok := s.wasmInstances[w.ID()]; ok {
+		return errdefs.ErrAlreadyExists
+	}
+
+	if err := s.idIndex.Add(w.ID()); err != nil {
+		return err
+	}
+	s.wasmInstances[w.ID()] = w
+	return nil
 }
