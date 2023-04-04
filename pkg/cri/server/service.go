@@ -145,6 +145,7 @@ func NewCRIService(config criconfig.Config, client *containerd.Client) (CRIServi
 		wasmInstanceStore:           wasminstancestore.NewStore(labels),
 		sandboxNameIndex:            registrar.NewRegistrar(),
 		containerNameIndex:          registrar.NewRegistrar(),
+		wasmInstanceNameIndex:       registrar.NewRegistrar(),
 		initialized:                 atomic.NewBool(false),
 		netPlugin:                   make(map[string]cni.CNI),
 		unpackDuplicationSuppressor: kmutex.New(),
