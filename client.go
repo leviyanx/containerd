@@ -37,6 +37,7 @@ import (
 	namespacesapi "github.com/containerd/containerd/api/services/namespaces/v1"
 	snapshotsapi "github.com/containerd/containerd/api/services/snapshots/v1"
 	"github.com/containerd/containerd/api/services/tasks/v1"
+	"github.com/containerd/containerd/api/services/wasmdealer/v1"
 	versionservice "github.com/containerd/containerd/api/services/version/v1"
 	apitypes "github.com/containerd/containerd/api/types"
 	"github.com/containerd/containerd/containers"
@@ -619,6 +620,16 @@ func (c *Client) SnapshotService(snapshotterName string) snapshots.Snapshotter {
 	c.connMu.Lock()
 	defer c.connMu.Unlock()
 	return snproxy.NewSnapshotter(snapshotsapi.NewSnapshotsClient(c.conn), snapshotterName)
+}
+
+// WasmdealerService returns the underlying WasmdealerClient
+func (c *Client) WasmdealerService() wasmdealer.WasmdealerClient {
+	if c.wasmdealerService != nil {
+		return c.wasmdealerService
+	}
+	c.connMu.Lock()
+	defer c.connMu.Unlock()
+	return wasmdealer.NewWasmdealerClient(c.conn)
 }
 
 // TaskService returns the underlying TasksClient

@@ -23,6 +23,7 @@ import (
 	introspectionapi "github.com/containerd/containerd/api/services/introspection/v1"
 	namespacesapi "github.com/containerd/containerd/api/services/namespaces/v1"
 	"github.com/containerd/containerd/api/services/tasks/v1"
+	"github.com/containerd/containerd/api/services/wasmdealer/v1"
 	"github.com/containerd/containerd/containers"
 	"github.com/containerd/containerd/content"
 	"github.com/containerd/containerd/images"
@@ -39,6 +40,7 @@ type services struct {
 	namespaceStore       namespaces.Store
 	snapshotters         map[string]snapshots.Snapshotter
 	taskService          tasks.TasksClient
+	wasmdealerService    wasmdealer.WasmdealerClient
 	diffService          DiffService
 	eventService         EventService
 	leasesService        leases.Manager
@@ -97,6 +99,13 @@ func WithContainerStore(containerStore containers.Store) ServicesOpt {
 func WithTaskClient(taskService tasks.TasksClient) ServicesOpt {
 	return func(s *services) {
 		s.taskService = taskService
+	}
+}
+
+// WithWasmdealerClient sets the task service to use from a wasmdealer client.
+func WithWasmdealerClient(wasmdealerService wasmdealer.WasmdealerClient) ServicesOpt {
+	return func(s *services) {
+		s.wasmdealerService = wasmdealerService
 	}
 }
 

@@ -27,6 +27,8 @@ const (
 	ContainersService = "containers-service"
 	// TasksService is id of tasks service.
 	TasksService = "tasks-service"
+	// WasmdealerService is id of wasmdealer service.
+	WasmdealerService = "wasmdealer-service"
 	// NamespacesService is id of namespaces service.
 	NamespacesService = "namespaces-service"
 	// LeasesService is id of leases service.

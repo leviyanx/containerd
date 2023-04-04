@@ -1,0 +1,21 @@
+
+syntax = "proto3";
+
+package containerd.services.wasmdealer.v1;
+
+option go_package = "github.com/containerd/containerd/api/services/wasmdealer/v1;wasmdealer";
+
+service Wasmdealer {
+	// Create a task.
+	rpc Create(CreateTaskRequest) returns (CreateTaskResponse);
+}
+
+message CreateTaskRequest {
+	string container_id = 1;
+}
+
+message CreateTaskResponse {
+	string container_id = 1;
+	uint32 pid = 2;
+}
+
