@@ -378,6 +378,21 @@ func ContainerConfig(name, image string, opts ...ContainerOpts) *runtime.Contain
 	return cConfig
 }
 
+// ContainerConfigWithWasmModule creates a container config given a name and wasm module
+// and additional container config options
+func ContainerConfigWithWasmModule(name string, image *runtime.ImageSpec, opts ...ContainerOpts) *runtime.ContainerConfig {
+	cConfig := &runtime.ContainerConfig{
+		Metadata: &runtime.ContainerMetadata{
+			Name: name,
+		},
+		Image: image,
+	}
+	for _, opt := range opts {
+		opt(cConfig)
+	}
+	return cConfig
+}
+
 // CheckFunc is the function used to check a condition is true/false.
 type CheckFunc func() (bool, error)
 

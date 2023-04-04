@@ -39,9 +39,9 @@ func TestWasmInstanceRestart(t *testing.T) {
 	EnsureWasmModuleExists(t, *wasmModule)
 
 	t.Logf("Create a container config and run container in a pod")
-	containerConfig := ContainerConfig(
+	containerConfig := ContainerConfigWithWasmModule(
 		"container1",
-		wasmModule.GetImage(),
+		wasmModule,
 		WithTestLabels(),
 		WithTestAnnotations(),
 	)
