@@ -38,7 +38,7 @@ func TestWasmInstanceRestart(t *testing.T) {
 
 	EnsureWasmModuleExists(t, *wasmModule)
 
-	t.Logf("Create a container config and run container in a pod")
+	t.Logf("Create a wasm instance in a pod")
 	containerConfig := ContainerConfigWithWasmModule(
 		"container1",
 		wasmModule,
@@ -48,10 +48,14 @@ func TestWasmInstanceRestart(t *testing.T) {
 	cn, err := runtimeService.CreateContainer(sb, containerConfig, sbConfig)
 	require.NoError(t, err)
 	defer func() {
+		t.Logf("Remove the wasm instance")
 		assert.NoError(t, runtimeService.RemoveContainer(cn))
 	}()
+
+	t.Logf("Start the wasm instance in the pod")
 	require.NoError(t, runtimeService.StartContainer(cn))
 	defer func() {
+		t.Logf("Stop the wasm instance")
 		assert.NoError(t, runtimeService.StopContainer(cn, 10))
 	}()
 
