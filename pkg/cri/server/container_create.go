@@ -100,6 +100,7 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 		if err != nil {
 			return nil, fmt.Errorf("failed to find wasm module %q: %w", config.GetImage().GetImage(), err)
 		}
+		meta.WasmModuleName = wasmModule.Name
 
 		start := time.Now()
 		// Run wasm instance using the same runtime with sandbox
@@ -132,12 +133,10 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 		}
 		log.G(ctx).Debugf("Using wasm runtime %+v  for sandbox %q and wasm instance %q", wasmRuntime, sandboxID, id)
 
-		// TODO: generate wasm instance spec
+		// TODO: generate wasm instance spec, specOpts
 		// TODO: handle any KVM based runtime
 
 		// NOTE: don't create snapshotter
-
-		meta.WasmModuleName = wasmModule.Name
 
 		// TODO: get stopSignal
 
@@ -151,9 +150,7 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 
 		// NOTE: wasm instance IO later created in wasmdealer
 
-		// TODO: specOpts (maybe not needed)
-
-		// There is no image config label
+		// There are no labels that come from image config
 		wasmInstanceLabels := buildLabels(config.Labels, make(map[string]string), "wasm instance")
 		meta.Labels = wasmInstanceLabels
 
@@ -162,9 +159,8 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 			return nil, fmt.Errorf("failed to get runtime options: %w", err)
 		}
 
-		// TODO: determine opts for wasm instance
-
-		// TODO: Initialize the wasmInstance.
+		// Initialize the wasmInstance
+		// 1) Use the same runtime with sandbox
 		wasmInstance, err := wasminstance.NewWasmInstance(ctx, meta,
 			wasminstance.WithRuntime(sandboxInfo.Runtime.Name, runtimeOptions),
 			wasminstance.WithWasmModule(wasmModule),
@@ -183,7 +179,7 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 
 		// TODO: create status for wasm instance
 
-		// TODO: add wasm instance into store
+		// add wasm instance into store
 		if err := c.wasmInstanceStore.Add(wasmInstance); err != nil {
 			return nil, fmt.Errorf("failed to add wasm instance %q into store: %w", id, err)
 		}
