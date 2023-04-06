@@ -130,7 +130,7 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 		if err != nil {
 			return nil, fmt.Errorf("failed to get sandbox runtime: %w", err)
 		}
-		log.G(ctx).Debugf("Using wasm runtime %q for sandbox %q and wasm instance %q", wasmRuntime, sandboxID, id)
+		log.G(ctx).Debugf("Using wasm runtime %+v  for sandbox %q and wasm instance %q", wasmRuntime, sandboxID, id)
 
 		// TODO: generate wasm instance spec
 		// TODO: handle any KVM based runtime
