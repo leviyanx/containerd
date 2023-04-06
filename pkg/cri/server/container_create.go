@@ -66,7 +66,7 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 	sandboxPid := s.Pid()
 
 	// when the image is wasm module, create a wasm instance instead of a container
-	if wasmmodule.IsWasmModule(*r.GetConfig().GetImage()) {
+	if wasmmodule.IsWasmModule(r.GetConfig().GetImage()) {
 		// Generate unique id and name for the wasm instance and reserve the name.
 		// Reserve the wasm instance name to avoid concurrent `CreateContainer` request creating
 		// the same wasm instance.

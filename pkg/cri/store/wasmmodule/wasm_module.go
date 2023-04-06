@@ -61,7 +61,7 @@ func (w *WasmModule) GetUpdatedAt() time.Time {
 	return w.UpdatedAt
 }
 
-func IsWasmModule(image v1.ImageSpec) bool {
+func IsWasmModule(image *v1.ImageSpec) bool {
 	// if the annotation has the wasm module url item, it is a wasm module
 	_, urlExists := image.GetAnnotations()["wasm.module.url"]
 	return urlExists

@@ -95,7 +95,7 @@ import (
 func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest) (*runtime.PullImageResponse, error) {
 	logrus.Infof("Image %q has wasm annotation: %+v", r.GetImage().GetImage(), r.GetImage().GetAnnotations())
 	// Check whether the imageSpec contains a "wasm." annotation.
-	if wasmmodule.IsWasmModule(*r.GetImage()) {
+	if wasmmodule.IsWasmModule(r.GetImage()) {
 		wasmModuleName := r.GetImage().GetImage()
 		wasmModuleUrl := r.GetImage().GetAnnotations()["wasm.module.url"]
 
