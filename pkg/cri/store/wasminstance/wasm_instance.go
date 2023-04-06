@@ -5,12 +5,14 @@ import (
 	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/containers"
 	"github.com/containerd/containerd/errdefs"
+	"github.com/containerd/containerd/pkg/cri/store"
 	"github.com/containerd/containerd/pkg/cri/store/label"
 	"github.com/containerd/containerd/pkg/cri/store/truncindex"
 	"github.com/containerd/containerd/pkg/cri/store/wasmmodule"
 	"github.com/containerd/typeurl"
 	"github.com/gogo/protobuf/types"
 	"golang.org/x/net/context"
+	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"sync"
 )
 
@@ -26,6 +28,12 @@ type WasmInterface interface {
 type WasmInstance struct {
 	// Metadata is the metadata of the wasm instance, it is immutable after created.
 	Metadata
+
+	// Status stores the status of the wasm instance.
+	Status StatusStorage
+
+	// StopCh is used to propagate the stop information of the wasm instance.
+	*store.StopCh
 
 	// WasmModule is the wasm module the wasm instance belongs to.
 	WasmModule wasmmodule.WasmModule
@@ -56,6 +64,21 @@ func WithRuntime(name string, options interface{}) NewWasmInstanceOpts {
 	}
 }
 
+func WithStatus(status Status, root string) NewWasmInstanceOpts {
+	return func(ctx context.Context, w *WasmInstance) error {
+		s, err := StoreStatus(root, w.ID(), status)
+		if err != nil {
+			return err
+		}
+		w.Status = s
+		if s.Get().State() == runtime.ContainerState_CONTAINER_EXITED {
+			w.Stop()
+		}
+		return nil
+	}
+
+}
+
 // WithWasmModule sets the provided wasm module as the base for the wasm instance.
 func WithWasmModule(wasmModule wasmmodule.WasmModule) NewWasmInstanceOpts {
 	return func(ctx context.Context, w *WasmInstance) error {
@@ -67,6 +90,7 @@ func WithWasmModule(wasmModule wasmmodule.WasmModule) NewWasmInstanceOpts {
 func NewWasmInstance(ctx context.Context, metadata Metadata, opts ...NewWasmInstanceOpts) (WasmInstance, error) {
 	wasmInstance := WasmInstance{
 		Metadata: metadata,
+		StopCh:   store.NewStopCh(),
 	}
 
 	for _, o := range opts {

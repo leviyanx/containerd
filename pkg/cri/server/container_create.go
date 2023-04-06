@@ -159,10 +159,14 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 			return nil, fmt.Errorf("failed to get runtime options: %w", err)
 		}
 
+		status := wasminstance.Status{CreatedAt: time.Now().UnixNano()}
+		// TODO: copy spec to status
+
 		// Initialize the wasmInstance
 		// 1) Use the same runtime with sandbox
 		wasmInstance, err := wasminstance.NewWasmInstance(ctx, meta,
 			wasminstance.WithRuntime(sandboxInfo.Runtime.Name, runtimeOptions),
+			wasminstance.WithStatus(status, wasmInstanceRootDir),
 			wasminstance.WithWasmModule(wasmModule),
 		)
 		if err != nil {
@@ -176,8 +180,6 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 				}
 			}
 		}()
-
-		// TODO: create status for wasm instance
 
 		// add wasm instance into store
 		if err := c.wasmInstanceStore.Add(wasmInstance); err != nil {
