@@ -122,6 +122,18 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 			}
 		}()
 		meta.WasmInstanceRootDir = wasmInstanceRootDir
+		volatileWasmInstanceRootDir := c.getVolatileWasmInstanceRootDir(id)
+		if err = c.os.MkdirAll(volatileWasmInstanceRootDir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create volatile wasm instance root directory %q: %w", volatileWasmInstanceRootDir, err)
+		}
+		defer func() {
+			if retErr != nil {
+				// Cleanup the volatile wasm instance root directory.
+				if err = c.os.RemoveAll(volatileWasmInstanceRootDir); err != nil {
+					log.G(ctx).WithError(err).Errorf("Failed to remove volatile wasm instance root directory %q", volatileWasmInstanceRootDir)
+				}
+			}
+		}()
 
 		// NOTE: don't create wasm module volumes mounts
 		// NOTE: don't generate wasm instance mounts
@@ -148,7 +160,19 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 				sandboxConfig.GetLogDirectory(), config.GetLogPath())
 		}
 
-		// NOTE: wasm instance IO later created in wasmdealer
+		// Create wasm instance IO
+		wasmInstanceIO, err := cio.NewContainerIO(id,
+			cio.WithNewFIFOs(volatileWasmInstanceRootDir, config.GetTty(), config.GetStdin()))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create wasm instance IO: %w", err)
+		}
+		defer func() {
+			if retErr != nil {
+				if err = wasmInstanceIO.Close(); err != nil {
+					log.G(ctx).WithError(err).Errorf("Failed to close wasm instance IO %q", id)
+				}
+			}
+		}()
 
 		// There are no labels that come from image config
 		wasmInstanceLabels := buildLabels(config.Labels, make(map[string]string), "wasm instance")
@@ -168,6 +192,7 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 			wasminstance.WithRuntime(sandboxInfo.Runtime.Name, runtimeOptions),
 			wasminstance.WithStatus(status, wasmInstanceRootDir),
 			wasminstance.WithWasmModule(wasmModule),
+			wasminstance.WithWasmInstanceIO(wasmInstanceIO),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create wasm instance for %q: %w", id, err)

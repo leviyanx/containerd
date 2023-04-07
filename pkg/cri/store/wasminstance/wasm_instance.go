@@ -1,10 +1,9 @@
 package wasminstance
 
 import (
-	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/containers"
 	"github.com/containerd/containerd/errdefs"
+	cio "github.com/containerd/containerd/pkg/cri/io"
 	"github.com/containerd/containerd/pkg/cri/store"
 	"github.com/containerd/containerd/pkg/cri/store/label"
 	"github.com/containerd/containerd/pkg/cri/store/truncindex"
@@ -20,8 +19,6 @@ type WasmInterface interface {
 	ID() string
 
 	GetWasmModule(ctx context.Context) (wasmmodule.WasmModule, error)
-
-	Task(ctx context.Context, attach cio.Attach) (containerd.Task, error)
 }
 
 // WasmInstance contains all resources associated with the wasm instance.
@@ -31,6 +28,10 @@ type WasmInstance struct {
 
 	// Status stores the status of the wasm instance.
 	Status StatusStorage
+
+	// Wasm instance IO.
+	// IO could only be nil when the wasm instance is in unknown state.
+	IO *cio.ContainerIO
 
 	// StopCh is used to propagate the stop information of the wasm instance.
 	*store.StopCh
@@ -83,6 +84,14 @@ func WithStatus(status Status, root string) NewWasmInstanceOpts {
 func WithWasmModule(wasmModule wasmmodule.WasmModule) NewWasmInstanceOpts {
 	return func(ctx context.Context, w *WasmInstance) error {
 		w.WasmModule = wasmModule
+		return nil
+	}
+}
+
+// WithWasmInstanceIO adds IO into the wasm instance.
+func WithWasmInstanceIO(io *cio.ContainerIO) NewWasmInstanceOpts {
+	return func(ctx context.Context, w *WasmInstance) error {
+		w.IO = io
 		return nil
 	}
 }
