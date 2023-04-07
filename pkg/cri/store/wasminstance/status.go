@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/containerd/continuity"
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
+	"os"
 	"path/filepath"
 	"sync"
 )
@@ -90,6 +91,12 @@ type StatusStorage interface {
 	// Update the wasm instance status. Note that the update MUST be applied
 	// in one transaction.
 	Update(UpdateFunc) error
+
+	// Delete the wasm instance status.
+	// Note:
+	// * Delete should be idempotent.
+	// * The status MUST be deleted in one transaction.
+	Delete() error
 }
 
 // StoreStatus creates the storage containing the passed in wasm instance status with the specified id.
@@ -204,4 +211,14 @@ func (s *statusStorage) Update(u UpdateFunc) error {
 	}
 	s.status = newStatus
 	return nil
+}
+
+// Delete deletes the wasm instance status from disk atomically.
+func (s *statusStorage) Delete() error {
+	// Move the status file to a temp file and then delete it.
+	temp := filepath.Dir(s.path) + ".del-" + filepath.Base(s.path)
+	if err := os.Rename(s.path, temp); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return os.RemoveAll(temp)
 }

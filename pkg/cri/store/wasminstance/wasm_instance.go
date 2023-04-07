@@ -104,8 +104,7 @@ func NewWasmInstance(ctx context.Context, metadata Metadata, opts ...NewWasmInst
 
 // Delete deletes checkpoint for the wasm instance
 func (w *WasmInstance) Delete() error {
-	// TODO: call wasmInstance.status.Delete()
-	return nil
+	return w.Status.Delete()
 }
 
 func (w *WasmInstance) ID() string {
