@@ -71,13 +71,13 @@ func rpcCreateTest(ic *plugin.InitContext) error {
 
 	ctx := context.Background()
 	response, err := client.WasmdealerService().Create(ctx, &api.CreateTaskRequest{
-		ContainerId: "youtest",
+		WasmId: "youtest",
 	})
 	if err != nil {
 		fmt.Println("[wasmdealer-test] failed to send request")
 		return nil
 	}
-	fmt.Println("[wasmdealer-test] ", response.ContainerId)
+	fmt.Println("[wasmdealer-test] ", response.WasmId)
   return nil
 }
 

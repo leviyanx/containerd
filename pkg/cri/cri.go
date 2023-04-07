@@ -28,6 +28,7 @@ import (
 	introspectionapi "github.com/containerd/containerd/api/services/introspection/v1"
 	"github.com/containerd/containerd/api/services/namespaces/v1"
 	"github.com/containerd/containerd/api/services/tasks/v1"
+	"github.com/containerd/containerd/api/services/wasmdealer/v1"
 	"github.com/containerd/containerd/content"
 	"github.com/containerd/containerd/leases"
 	"github.com/containerd/containerd/log"
@@ -141,6 +142,9 @@ func getServicesOpts(ic *plugin.InitContext) ([]containerd.ServicesOpt, error) {
 		},
 		services.TasksService: func(s interface{}) containerd.ServicesOpt {
 			return containerd.WithTaskClient(s.(tasks.TasksClient))
+		},
+		services.WasmdealerService: func(s interface{}) containerd.ServicesOpt {
+			return containerd.WithWasmdealerClient(s.(wasmdealer.WasmdealerClient))
 		},
 		services.DiffService: func(s interface{}) containerd.ServicesOpt {
 			return containerd.WithDiffClient(s.(diff.DiffClient))

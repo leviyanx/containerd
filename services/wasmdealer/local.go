@@ -53,7 +53,7 @@ func (l *local) Create(ctx context.Context, r *api.CreateTaskRequest, _ ...grpc.
 	// 	TaskOptions:    r.Options,
 	// }
   return &api.CreateTaskResponse{
-    ContainerId: "youtest",
+    WasmId: "youtest",
   }, nil
 }
 

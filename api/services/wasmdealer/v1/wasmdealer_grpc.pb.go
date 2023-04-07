@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.12.4
-// source: v1/wasmdealer.proto
+// source: api/services/wasmdealer/v1/wasmdealer.proto
 
 package wasmdealer
 
@@ -101,5 +101,5 @@ var Wasmdealer_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "v1/wasmdealer.proto",
+	Metadata: "api/services/wasmdealer/v1/wasmdealer.proto",
 }

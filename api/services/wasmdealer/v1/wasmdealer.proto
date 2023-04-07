@@ -3,6 +3,8 @@ syntax = "proto3";
 
 package containerd.services.wasmdealer.v1;
 
+import "google/protobuf/any.proto";
+
 option go_package = "github.com/containerd/containerd/api/services/wasmdealer/v1;wasmdealer";
 
 service Wasmdealer {
@@ -11,11 +13,22 @@ service Wasmdealer {
 }
 
 message CreateTaskRequest {
-	string container_id = 1;
+	// ID is the user-specified identifier.
+	string wasm_id = 1;
+
+  // the directory path where of the wasm file
+	string image_path = 2;
+
+	// Spec to be used when creating the container. This is runtime specific.
+	google.protobuf.Any spec = 3;
+
+	string stdin = 4;
+	string stdout = 5;
+	string stderr = 6;
 }
 
 message CreateTaskResponse {
-	string container_id = 1;
+	string wasm_id = 1;
 	uint32 pid = 2;
 }
 
