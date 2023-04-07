@@ -25,6 +25,12 @@ message CreateTaskRequest {
 	string stdin = 4;
 	string stdout = 5;
 	string stderr = 6;
+
+  // task options
+	google.protobuf.Any options = 7;
+
+  // optional and prioritized runtime
+	string runtime_path = 8;
 }
 
 message CreateTaskResponse {

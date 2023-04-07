@@ -40,14 +40,13 @@ type local struct {
 
 func (l *local) Create(ctx context.Context, r *api.CreateTaskRequest, _ ...grpc.CallOption) (*api.CreateTaskResponse, error) {
 	// opts := runtime.CreateOpts{
-	// 	Spec: container.Spec,
+	// 	Spec: anyFromPbToTypes(r.Spec),
 	// 	IO: runtime.IO{
 	// 		Stdin:    r.Stdin,
 	// 		Stdout:   r.Stdout,
 	// 		Stderr:   r.Stderr,
-	// 		Terminal: r.Terminal,
+	// 		Terminal: false,
 	// 	},
-	// 	Checkpoint:     checkpointPath,
 	// 	Runtime:        container.Runtime.Name,
 	// 	RuntimeOptions: container.Runtime.Options,
 	// 	TaskOptions:    r.Options,

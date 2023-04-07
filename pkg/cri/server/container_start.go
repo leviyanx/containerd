@@ -48,8 +48,8 @@ func (c *criService) StartContainer(ctx context.Context, r *runtime.StartContain
 	// i.e. if wasm instance is not created properly, will start containerd container continually instead report error
 	if wasmInstance, err := c.wasmInstanceStore.Get(r.GetContainerId()); err == nil {
 		id := wasmInstance.ID
-		meta := wasmInstance.Metadata
-		config := meta.Config
+		// meta := wasmInstance.Metadata
+		// config := meta.Config
 
 		// Set starting state to prevent other start/remove operations against this container
 		// while it's being started.
