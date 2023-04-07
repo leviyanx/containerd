@@ -150,3 +150,22 @@ func (s *Store) Add(w WasmInstance) error {
 	s.wasmInstances[w.ID()] = w
 	return nil
 }
+
+// Get returns the wasm instance with specified ID. Return store.ErrNotExist if
+// the wasm instance doesn't exist.
+func (s *Store) Get(id string) (WasmInstance, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	id, err := s.idIndex.Get(id)
+	if err != nil {
+		if err == truncindex.ErrNotExist {
+			err = errdefs.ErrNotFound
+		}
+		return WasmInstance{}, err
+	}
+
+	if c, ok := s.wasmInstances[id]; ok {
+		return c, nil
+	}
+	return WasmInstance{}, errdefs.ErrNotFound
+}
