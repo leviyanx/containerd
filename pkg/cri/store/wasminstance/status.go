@@ -35,6 +35,12 @@ type Status struct {
 	// ExitCode is the wasm instance exit code.
 	ExitCode int32
 
+	// CamelCase string explaining why wasm instance is in its current state.
+	Reason string
+	// Human-readable message indicating details about why the wasm instance is
+	// in its current state.
+	Message string
+
 	// Starting indicates that the wasm instance is in starting state.
 	Starting bool
 	// Running indicates that the wasm instance is in running state.
@@ -69,9 +75,21 @@ func (s *Status) encode() ([]byte, error) {
 	})
 }
 
+// UpdateFunc is function used to update the wasm instance status. If there is
+// an error, the update wil be rolled back.
+type UpdateFunc func(Status) (Status, error)
+
 type StatusStorage interface {
 	// Get a wasm instance status.
 	Get() Status
+
+	// UpdateSync updates the wasm instance status and then on disk checkpoint.
+	// Note that the update MUST be applied in one transaction.
+	UpdateSync(UpdateFunc) error
+
+	// Update the wasm instance status. Note that the update MUST be applied
+	// in one transaction.
+	Update(UpdateFunc) error
 }
 
 // StoreStatus creates the storage containing the passed in wasm instance status with the specified id.
@@ -102,6 +120,26 @@ func (s *statusStorage) Get() Status {
 	s.RLock()
 	defer s.RUnlock()
 	return deepCopy(s.status)
+}
+
+// UpdateSync updates the wasm instance status and then on disk checkpoint.
+func (s *statusStorage) UpdateSync(u UpdateFunc) error {
+	s.Lock()
+	defer s.Unlock()
+
+	newStatus, err := u(s.status)
+	if err != nil {
+		return err
+	}
+	data, err := newStatus.encode()
+	if err != nil {
+		return fmt.Errorf("failed to encode status: %v", err)
+	}
+	if err := continuity.AtomicWriteFile(s.path, data, 0600); err != nil {
+		return fmt.Errorf("failed to checkpoint status to %q: %v", s.path, err)
+	}
+	s.status = newStatus
+	return nil
 }
 
 func deepCopy(s Status) Status {
@@ -153,4 +191,17 @@ func deepCopy(s Status) Status {
 	}
 
 	return copiedS
+}
+
+// Update the container status.
+func (s *statusStorage) Update(u UpdateFunc) error {
+	s.Lock()
+	defer s.Unlock()
+
+	newStatus, err := u(s.status)
+	if err != nil {
+		return err
+	}
+	s.status = newStatus
+	return nil
 }

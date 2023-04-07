@@ -19,6 +19,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"github.com/containerd/containerd/pkg/cri/store/wasminstance"
 	"io"
 	"time"
 
@@ -49,6 +50,30 @@ func (c *criService) StartContainer(ctx context.Context, r *runtime.StartContain
 		id := wasmInstance.ID
 		meta := wasmInstance.Metadata
 		config := meta.Config
+
+		// Set starting state to prevent other start/remove operations against this container
+		// while it's being started.
+		if err := setWasmInstanceStarting(wasmInstance); err != nil {
+			return nil, fmt.Errorf("failed to set starting state for wasm instance %q: %w", id, err)
+		}
+		defer func() {
+			if retErr != nil {
+				// Set wasm instance to exited if fail to start.
+				if err := wasmInstance.Status.UpdateSync(func(status wasminstance.Status) (wasminstance.Status, error) {
+					status.Pid = 0
+					status.FinishedAt = time.Now().UnixNano()
+					status.ExitCode = errorStartExitCode
+					status.Reason = errorStartReason
+					status.Message = retErr.Error()
+					return status, nil
+				}); err != nil {
+					log.G(ctx).WithError(err).Errorf("failed to set start failure state for wasm instance %q", id)
+				}
+			}
+			if err := resetWasmInstanceStarting(wasmInstance); err != nil {
+				log.G(ctx).WithError(err).Errorf("failed to reset starting state for wasm instance %q", id)
+			}
+		}()
 
 	}
 
@@ -212,10 +237,38 @@ func setContainerStarting(container containerstore.Container) error {
 	})
 }
 
+func setWasmInstanceStarting(wasmInstance wasminstance.WasmInstance) error {
+	return wasmInstance.Status.Update(func(status wasminstance.Status) (wasminstance.Status, error) {
+		// Return error if wasm instance is not in created state.
+		if status.State() != runtime.ContainerState_CONTAINER_CREATED {
+			return status, fmt.Errorf("wasm instance is in %s state", criContainerStateToString(status.State()))
+		}
+
+		// Do not start the wasm instance when there is a removal in progress.
+		if status.Removing {
+			return status, errors.New("wasm instance is in removing state, can't be started")
+		}
+		if status.Starting {
+			return status, errors.New("wasm instance is already in starting state")
+		}
+		status.Starting = true
+		return status, nil
+	})
+}
+
 // resetContainerStarting resets the container starting state on start failure. So
 // that we could remove the container later.
 func resetContainerStarting(container containerstore.Container) error {
 	return container.Status.Update(func(status containerstore.Status) (containerstore.Status, error) {
+		status.Starting = false
+		return status, nil
+	})
+}
+
+// resetWasmInstanceStarting resets the wasm instance starting state on start failure. So
+// that we could remove the wasm instance later.
+func resetWasmInstanceStarting(wasmInstance wasminstance.WasmInstance) error {
+	return wasmInstance.Status.Update(func(status wasminstance.Status) (wasminstance.Status, error) {
 		status.Starting = false
 		return status, nil
 	})
