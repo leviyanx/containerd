@@ -24,6 +24,13 @@ const _ = grpc.SupportPackageIsVersion7
 type WasmdealerClient interface {
 	// Create a task.
 	Create(ctx context.Context, in *CreateTaskRequest, opts ...grpc.CallOption) (*CreateTaskResponse, error)
+	// Start a process.
+	Start(ctx context.Context, in *StartRequest, opts ...grpc.CallOption) (*StartResponse, error)
+	// Delete a task and on disk state.
+	Delete(ctx context.Context, in *DeleteTaskRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
+	DeleteProcess(ctx context.Context, in *DeleteProcessRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
+	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
+	List(ctx context.Context, in *ListTasksRequest, opts ...grpc.CallOption) (*ListTasksResponse, error)
 }
 
 type wasmdealerClient struct {
@@ -43,12 +50,64 @@ func (c *wasmdealerClient) Create(ctx context.Context, in *CreateTaskRequest, op
 	return out, nil
 }
 
+func (c *wasmdealerClient) Start(ctx context.Context, in *StartRequest, opts ...grpc.CallOption) (*StartResponse, error) {
+	out := new(StartResponse)
+	err := c.cc.Invoke(ctx, "/containerd.services.wasmdealer.v1.Wasmdealer/Start", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *wasmdealerClient) Delete(ctx context.Context, in *DeleteTaskRequest, opts ...grpc.CallOption) (*DeleteResponse, error) {
+	out := new(DeleteResponse)
+	err := c.cc.Invoke(ctx, "/containerd.services.wasmdealer.v1.Wasmdealer/Delete", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *wasmdealerClient) DeleteProcess(ctx context.Context, in *DeleteProcessRequest, opts ...grpc.CallOption) (*DeleteResponse, error) {
+	out := new(DeleteResponse)
+	err := c.cc.Invoke(ctx, "/containerd.services.wasmdealer.v1.Wasmdealer/DeleteProcess", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *wasmdealerClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error) {
+	out := new(GetResponse)
+	err := c.cc.Invoke(ctx, "/containerd.services.wasmdealer.v1.Wasmdealer/Get", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *wasmdealerClient) List(ctx context.Context, in *ListTasksRequest, opts ...grpc.CallOption) (*ListTasksResponse, error) {
+	out := new(ListTasksResponse)
+	err := c.cc.Invoke(ctx, "/containerd.services.wasmdealer.v1.Wasmdealer/List", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WasmdealerServer is the server API for Wasmdealer service.
 // All implementations should embed UnimplementedWasmdealerServer
 // for forward compatibility
 type WasmdealerServer interface {
 	// Create a task.
 	Create(context.Context, *CreateTaskRequest) (*CreateTaskResponse, error)
+	// Start a process.
+	Start(context.Context, *StartRequest) (*StartResponse, error)
+	// Delete a task and on disk state.
+	Delete(context.Context, *DeleteTaskRequest) (*DeleteResponse, error)
+	DeleteProcess(context.Context, *DeleteProcessRequest) (*DeleteResponse, error)
+	Get(context.Context, *GetRequest) (*GetResponse, error)
+	List(context.Context, *ListTasksRequest) (*ListTasksResponse, error)
 }
 
 // UnimplementedWasmdealerServer should be embedded to have forward compatible implementations.
@@ -57,6 +116,21 @@ type UnimplementedWasmdealerServer struct {
 
 func (UnimplementedWasmdealerServer) Create(context.Context, *CreateTaskRequest) (*CreateTaskResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
+}
+func (UnimplementedWasmdealerServer) Start(context.Context, *StartRequest) (*StartResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Start not implemented")
+}
+func (UnimplementedWasmdealerServer) Delete(context.Context, *DeleteTaskRequest) (*DeleteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedWasmdealerServer) DeleteProcess(context.Context, *DeleteProcessRequest) (*DeleteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteProcess not implemented")
+}
+func (UnimplementedWasmdealerServer) Get(context.Context, *GetRequest) (*GetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+}
+func (UnimplementedWasmdealerServer) List(context.Context, *ListTasksRequest) (*ListTasksResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
 
 // UnsafeWasmdealerServer may be embedded to opt out of forward compatibility for this service.
@@ -88,6 +162,96 @@ func _Wasmdealer_Create_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Wasmdealer_Start_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WasmdealerServer).Start(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/containerd.services.wasmdealer.v1.Wasmdealer/Start",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WasmdealerServer).Start(ctx, req.(*StartRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Wasmdealer_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WasmdealerServer).Delete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/containerd.services.wasmdealer.v1.Wasmdealer/Delete",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WasmdealerServer).Delete(ctx, req.(*DeleteTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Wasmdealer_DeleteProcess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteProcessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WasmdealerServer).DeleteProcess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/containerd.services.wasmdealer.v1.Wasmdealer/DeleteProcess",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WasmdealerServer).DeleteProcess(ctx, req.(*DeleteProcessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Wasmdealer_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WasmdealerServer).Get(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/containerd.services.wasmdealer.v1.Wasmdealer/Get",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WasmdealerServer).Get(ctx, req.(*GetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Wasmdealer_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTasksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WasmdealerServer).List(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/containerd.services.wasmdealer.v1.Wasmdealer/List",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WasmdealerServer).List(ctx, req.(*ListTasksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Wasmdealer_ServiceDesc is the grpc.ServiceDesc for Wasmdealer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -98,6 +262,26 @@ var Wasmdealer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Create",
 			Handler:    _Wasmdealer_Create_Handler,
+		},
+		{
+			MethodName: "Start",
+			Handler:    _Wasmdealer_Start_Handler,
+		},
+		{
+			MethodName: "Delete",
+			Handler:    _Wasmdealer_Delete_Handler,
+		},
+		{
+			MethodName: "DeleteProcess",
+			Handler:    _Wasmdealer_DeleteProcess_Handler,
+		},
+		{
+			MethodName: "Get",
+			Handler:    _Wasmdealer_Get_Handler,
+		},
+		{
+			MethodName: "List",
+			Handler:    _Wasmdealer_List_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -1,15 +1,28 @@
-
 syntax = "proto3";
 
 package containerd.services.wasmdealer.v1;
 
 import "google/protobuf/any.proto";
+import "github.com/containerd/containerd/api/types/task/task.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/containerd/containerd/api/services/wasmdealer/v1;wasmdealer";
 
 service Wasmdealer {
 	// Create a task.
 	rpc Create(CreateTaskRequest) returns (CreateTaskResponse);
+
+	// Start a process.
+	rpc Start(StartRequest) returns (StartResponse);
+
+	// Delete a task and on disk state.
+	rpc Delete(DeleteTaskRequest) returns (DeleteResponse);
+
+	rpc DeleteProcess(DeleteProcessRequest) returns (DeleteResponse);
+
+	rpc Get(GetRequest) returns (GetResponse);
+
+	rpc List(ListTasksRequest) returns (ListTasksResponse);
 }
 
 message CreateTaskRequest {
@@ -37,3 +50,44 @@ message CreateTaskResponse {
 	uint32 pid = 2;
 }
 
+message StartRequest {
+	string wasm_id = 1;
+	string exec_id = 2;
+}
+
+message StartResponse {
+	uint32 pid = 1;
+}
+
+message DeleteTaskRequest {
+	string wasm_id = 1;
+}
+
+message DeleteResponse {
+	string id = 1;
+	uint32 pid = 2;
+	uint32 exit_status = 3;
+	google.protobuf.Timestamp exited_at = 4;
+}
+
+message DeleteProcessRequest {
+	string wasm_id = 1;
+	string exec_id = 2;
+}
+
+message GetRequest {
+	string wasm_id = 1;
+	string exec_id = 2;
+}
+
+message GetResponse {
+	containerd.v1.types.Process process = 1;
+}
+
+message ListTasksRequest {
+	string filter = 1;
+}
+
+message ListTasksResponse {
+	repeated containerd.v1.types.Process tasks = 1;
+}

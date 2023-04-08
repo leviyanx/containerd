@@ -7,6 +7,7 @@ import (
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/api/services/wasmdealer/v1"
 	api "github.com/containerd/containerd/api/services/wasmdealer/v1"
+	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/plugin"
 	"github.com/containerd/containerd/services"
 )
@@ -24,7 +25,7 @@ func init() {
 
 func initTest(ic *plugin.InitContext) (interface{}, error) {
   // test wasmdealer and its service
-  rpcCreateTest(ic)
+  // rpcCreateTest(ic)
 
 	return nil, nil
 }
@@ -69,7 +70,7 @@ func rpcCreateTest(ic *plugin.InitContext) error {
 		return nil
 	}
 
-	ctx := context.Background()
+	ctx := namespaces.WithNamespace(context.Background(), "wasmdealer-test")
 	response, err := client.WasmdealerService().Create(ctx, &api.CreateTaskRequest{
 		WasmId: "youtest",
 	})

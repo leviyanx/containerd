@@ -47,3 +47,23 @@ func (s *service) Create(ctx context.Context, r *api.CreateTaskRequest) (*api.Cr
 	return s.local.Create(ctx, r)
 }
 
+func (s *service) Start(ctx context.Context, r *api.StartRequest) (*api.StartResponse, error) {
+  return s.local.Start(ctx, r)
+}
+
+func (s *service) Delete(ctx context.Context, r *api.DeleteTaskRequest) (*api.DeleteResponse, error) {
+  return s.local.Delete(ctx, r)
+}
+
+func (s *service) DeleteProcess(ctx context.Context, r *api.DeleteProcessRequest) (*api.DeleteResponse, error) {
+  return s.local.DeleteProcess(ctx, r)
+}
+
+func (s *service) Get(ctx context.Context, r *api.GetRequest) (*api.GetResponse, error) {
+  return s.local.Get(ctx, r)
+}
+
+func (s *service) List(ctx context.Context, r *api.ListTasksRequest) (*api.ListTasksResponse, error) {
+  return s.local.List(ctx, r)
+}
+
