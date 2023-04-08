@@ -5,11 +5,20 @@ import (
 	"fmt"
 
 	api "github.com/containerd/containerd/api/services/wasmdealer/v1"
+	"github.com/containerd/containerd/api/types/task"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/plugin"
+	"github.com/containerd/containerd/log"
+	"github.com/containerd/containerd/pkg/timeout"
 	"github.com/containerd/containerd/runtime"
 	"github.com/containerd/containerd/services"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+const (
+	stateTimeout = "io.containerd.timeout.task.state"
 )
 
 func init() {
@@ -64,7 +73,7 @@ type local struct {
   runtime runtime.PlatformRuntime
 }
 
-// TODO: add a test case in test_plugin, seemds hard :(
+// TODO: add test cases for apis in test_plugin, seemds hard :(
 func (l *local) Create(ctx context.Context, r *api.CreateTaskRequest, _ ...grpc.CallOption) (*api.CreateTaskResponse, error) {
 	opts := runtime.CreateOpts{
 		Spec: anyFromPbToTypes(r.Spec),
@@ -109,23 +118,152 @@ func (l *local) Create(ctx context.Context, r *api.CreateTaskRequest, _ ...grpc.
 }
 
 func (l *local) Start(ctx context.Context, r *api.StartRequest, _ ...grpc.CallOption) (*api.StartResponse, error) {
-  return nil, nil
+	t, err := l.runtime.Get(ctx, r.WasmId)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "task %v not found", r.WasmId)
+	}
+	p := runtime.Process(t)
+	if r.ExecId != "" {
+		if p, err = t.Process(ctx, r.ExecId); err != nil {
+			return nil, errdefs.ToGRPC(err)
+		}
+	}
+	if err := p.Start(ctx); err != nil {
+		return nil, errdefs.ToGRPC(err)
+	}
+	state, err := p.State(ctx)
+	if err != nil {
+		return nil, errdefs.ToGRPC(err)
+	}
+	return &api.StartResponse{
+		Pid: state.Pid,
+	}, nil
 }
 
 func (l *local) Delete(ctx context.Context, r *api.DeleteTaskRequest, _ ...grpc.CallOption) (*api.DeleteResponse, error) {
-  return nil, nil
+	t, err := l.runtime.Get(ctx, r.WasmId)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "task %v not found", r.WasmId)
+	}
+	if err := l.monitor.Stop(t); err != nil {
+		return nil, err
+	}
+
+	exit, err := l.runtime.Delete(ctx, r.WasmId)
+	if err != nil {
+		return nil, errdefs.ToGRPC(err)
+	}
+
+	return &api.DeleteResponse{
+		ExitStatus: exit.Status,
+		ExitedAt:   ToTimestamp(exit.Timestamp),
+		Pid:        exit.Pid,
+	}, nil
 }
 
 func (l *local) DeleteProcess(ctx context.Context, r *api.DeleteProcessRequest, _ ...grpc.CallOption) (*api.DeleteResponse, error) {
-  return nil, nil
+	t, err := l.runtime.Get(ctx, r.WasmId)
+	if err != nil {
+		return nil, err
+	}
+	process, err := t.Process(ctx, r.ExecId)
+	if err != nil {
+		return nil, errdefs.ToGRPC(err)
+	}
+	exit, err := process.Delete(ctx)
+	if err != nil {
+		return nil, errdefs.ToGRPC(err)
+	}
+	return &api.DeleteResponse{
+		Id:         r.ExecId,
+		ExitStatus: exit.Status,
+		ExitedAt:   ToTimestamp(exit.Timestamp),
+		Pid:        exit.Pid,
+	}, nil
+}
+
+func getProcessState(ctx context.Context, p runtime.Process) (*task.Process, error) {
+	ctx, cancel := timeout.WithContext(ctx, stateTimeout)
+	defer cancel()
+
+	state, err := p.State(ctx)
+	if err != nil {
+		if errdefs.IsNotFound(err) {
+			return nil, err
+		}
+		log.G(ctx).WithError(err).Errorf("get state for %s", p.ID())
+	}
+	status := task.StatusUnknown
+	switch state.Status {
+	case runtime.CreatedStatus:
+		status = task.StatusCreated
+	case runtime.RunningStatus:
+		status = task.StatusRunning
+	case runtime.StoppedStatus:
+		status = task.StatusStopped
+	case runtime.PausedStatus:
+		status = task.StatusPaused
+	case runtime.PausingStatus:
+		status = task.StatusPausing
+	default:
+		log.G(ctx).WithField("status", state.Status).Warn("unknown status")
+	}
+	return &task.Process{
+		ID:         p.ID(),
+		Pid:        state.Pid,
+		Status:     status,
+		Stdin:      state.Stdin,
+		Stdout:     state.Stdout,
+		Stderr:     state.Stderr,
+		Terminal:   state.Terminal,
+		ExitStatus: state.ExitStatus,
+		ExitedAt:   state.ExitedAt,
+	}, nil
 }
 
 func (l *local) Get(ctx context.Context, r *api.GetRequest, _ ...grpc.CallOption) (*api.GetResponse, error) {
-  return nil, nil
-
+	task, err := l.runtime.Get(ctx, r.WasmId)
+	if err != nil {
+		return nil, err
+	}
+	p := runtime.Process(task)
+	if r.ExecId != "" {
+		if p, err = task.Process(ctx, r.ExecId); err != nil {
+			return nil, errdefs.ToGRPC(err)
+		}
+	}
+	t, err := getProcessState(ctx, p)
+	if err != nil {
+		return nil, errdefs.ToGRPC(err)
+	}
+	return &api.GetResponse{
+		Process: t,
+	}, nil
 }
 
+// only lists tasks of runtimeV2
 func (l *local) List(ctx context.Context, r *api.ListTasksRequest, _ ...grpc.CallOption) (*api.ListTasksResponse, error) {
-  return nil, nil
+	resp := &api.ListTasksResponse{}
+
+  tasks, err := l.runtime.Tasks(ctx, false)
+  if err != nil {
+    return nil, errdefs.ToGRPC(err)
+  }
+  addTasks(ctx, resp, tasks)
+
+	return resp, nil
+}
+
+func addTasks(ctx context.Context, r *api.ListTasksResponse, tasks []runtime.Task) {
+	for _, t := range tasks {
+		tt, err := getProcessState(ctx, t)
+		if err != nil {
+			if !errdefs.IsNotFound(err) { // handle race with deletion
+				log.G(ctx).WithError(err).WithField("id", t.ID()).Error("converting task to protobuf")
+			}
+			continue
+		}
+		r.Tasks = append(r.Tasks, tt)
+	}
 }
 
