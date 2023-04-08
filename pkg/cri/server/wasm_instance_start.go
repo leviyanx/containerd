@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/containerd/containerd"
 	containerdio "github.com/containerd/containerd/cio"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/log"
 	sandboxstore "github.com/containerd/containerd/pkg/cri/store/sandbox"
 	"github.com/containerd/containerd/pkg/cri/store/wasminstance"
+	ctrdutil "github.com/containerd/containerd/pkg/cri/util"
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"time"
 )
@@ -68,11 +71,21 @@ func (c *criService) StartWasmInstance(ctx context.Context, wasmInstance *wasmin
 		return nil, fmt.Errorf("failed to get sandbox runtime: %w", err)
 	}
 
-	// TODO: create wasm instance task and delete task
-	_, err = wasmInstance.NewTask(ctx, c.client, ioCreation)
+	// Create wasm instance task and delete task when encountering error.
+	wasmTask, err := wasmInstance.NewTask(ctx, c.client, ioCreation)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create wasm instance task: %w", err)
 	}
+	defer func() {
+		if retErr != nil {
+			deferCtx, deferCancel := ctrdutil.DeferContext()
+			defer deferCancel()
+			// It's possible that task is deleted by event monitor.
+			if _, err := wasmTask.Delete(deferCtx, WithNRISandboxDelete(sandboxID), containerd.WithProcessKill); err != nil && !errdefs.IsNotFound(err) {
+				log.G(ctx).WithError(err).Errorf("Failed to delete wasm task %q", id)
+			}
+		}
+	}()
 
 	// TODO: start wasm instance task
 
