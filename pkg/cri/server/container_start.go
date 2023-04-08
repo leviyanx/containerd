@@ -48,8 +48,8 @@ func (c *criService) StartContainer(ctx context.Context, r *runtime.StartContain
 	// i.e. if wasm instance is not created properly, will start containerd container continually instead report error
 	if wasmInstance, err := c.wasmInstanceStore.Get(r.GetContainerId()); err == nil {
 		id := wasmInstance.ID
-		// meta := wasmInstance.Metadata
-		// config := meta.Config
+		meta := wasmInstance.Metadata
+		config := wasmInstance.Config
 
 		// Set starting state to prevent other start/remove operations against this container
 		// while it's being started.
@@ -75,6 +75,40 @@ func (c *criService) StartContainer(ctx context.Context, r *runtime.StartContain
 			}
 		}()
 
+		// Get sandbox config from sandbox store.
+		sandbox, err := c.sandboxStore.Get(meta.SandboxID)
+		if err != nil {
+			return nil, fmt.Errorf("sandbox %q not found: %w", meta.SandboxID, err)
+		}
+		sandboxID := meta.SandboxID
+		if sandbox.Status.Get().State != sandboxstore.StateReady {
+			return nil, fmt.Errorf("sandbox %q is not running", sandboxID)
+		}
+
+		// TODO: recheck target wasm instance validity in Linux namespace options.
+
+		ioCreation := func(id string) (_ containerdio.IO, err error) {
+			stdoutWC, stderrWC, err := c.createContainerLoggers(meta.LogPath, config.GetTty())
+			if err != nil {
+				return nil, fmt.Errorf("failed to create wasm instance loggers: %w", err)
+			}
+			wasmInstance.IO.AddOutput("log", stdoutWC, stderrWC)
+			wasmInstance.IO.Pipe()
+			return wasmInstance.IO, nil
+		}
+
+		_, err = c.getSandboxRuntime(sandbox.Config, sandbox.Metadata.RuntimeHandler)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get sandbox runtime: %w", err)
+		}
+
+		// TODO: create wasm instance task and delete task
+		_, err = wasmInstance.NewTask(ctx, c.client, ioCreation)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create wasm instance task: %w", err)
+		}
+
+		// TODO: start wasm instance task
 	}
 
 	cntr, err := c.containerStore.Get(r.GetContainerId())

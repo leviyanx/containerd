@@ -1,7 +1,7 @@
 package wasminstance
 
 import (
-	"github.com/containerd/containerd/containers"
+	"google.golang.org/protobuf/types/known/anypb"
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"time"
 )
@@ -41,11 +41,19 @@ type Metadata struct {
 	// Runtime specifies which runtime should be used when lanuching the wasm instance tasks.
 	//
 	// This property is required and immutable.
-	Runtime containers.RuntimeInfo
+	Runtime RuntimeInfo
+	// Spec is used to create tasks from the wasm instance.
+	Spec *anypb.Any
 
 	// CreatedAt is the time at which the container was created.
 	CreatedAt time.Time
 
 	// UpdatedAt is the time at which the container was updated.
 	UpdatedAt time.Time
+}
+
+// RuntimeInfo holds runtime specific information
+type RuntimeInfo struct {
+	Name    string
+	Options *anypb.Any
 }
