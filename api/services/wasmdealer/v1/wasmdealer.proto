@@ -15,10 +15,8 @@ service Wasmdealer {
 message CreateTaskRequest {
 	// ID is the user-specified identifier.
 	string wasm_id = 1;
-
   // the directory path where of the wasm file
 	string image_path = 2;
-
 	// Spec to be used when creating the container. This is runtime specific.
 	google.protobuf.Any spec = 3;
 
@@ -26,11 +24,12 @@ message CreateTaskRequest {
 	string stdout = 5;
 	string stderr = 6;
 
+  // runtime options
+	google.protobuf.Any runtime_options = 7;
   // task options
-	google.protobuf.Any options = 7;
-
-  // optional and prioritized runtime
-	string runtime_path = 8;
+	google.protobuf.Any task_options = 8;
+  // optional and prioritized runtime, should be a constant value for wasmedge
+	string runtime = 9;
 }
 
 message CreateTaskResponse {

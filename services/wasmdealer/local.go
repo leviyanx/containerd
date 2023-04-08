@@ -47,9 +47,9 @@ func (l *local) Create(ctx context.Context, r *api.CreateTaskRequest, _ ...grpc.
 	// 		Stderr:   r.Stderr,
 	// 		Terminal: false,
 	// 	},
-	// 	Runtime:        container.Runtime.Name,
-	// 	RuntimeOptions: container.Runtime.Options,
-	// 	TaskOptions:    r.Options,
+	// 	Runtime:        r.Runtime,
+  //  RuntimeOptions: anyFromPbToTypes(r.RuntimeOptions),
+	// 	TaskOptions:    anyFromPbToTypes(r.TaskOptions),
 	// }
   return &api.CreateTaskResponse{
     WasmId: "youtest",
