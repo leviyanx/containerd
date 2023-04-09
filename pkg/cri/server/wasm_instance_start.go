@@ -99,6 +99,15 @@ func (c *criService) StartWasmInstance(ctx context.Context, wasmInstance *wasmin
 		return nil, fmt.Errorf("failed to start wasm instance task %q: %w", id, err)
 	}
 
+	// Update wasm instance start timestamp.
+	if err := wasmInstance.Status.Update(func(status wasminstance.Status) (wasminstance.Status, error) {
+		status.Pid = wasmTask.Pid()
+		status.StartedAt = time.Now().UnixNano()
+		return status, nil
+	}); err != nil {
+		return nil, fmt.Errorf("failed to update wasm instance %q state: %w", id, err)
+	}
+
 	return &runtime.StartContainerResponse{}, nil
 }
 
