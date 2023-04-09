@@ -37,6 +37,8 @@ type WasmdealerClient interface {
 	Pause(ctx context.Context, in *PauseTaskRequest, opts ...grpc.CallOption) (*types.Empty, error)
 	Resume(ctx context.Context, in *ResumeTaskRequest, opts ...grpc.CallOption) (*types.Empty, error)
 	ListPids(ctx context.Context, in *ListPidsRequest, opts ...grpc.CallOption) (*ListPidsResponse, error)
+	Update(ctx context.Context, in *UpdateTaskRequest, opts ...grpc.CallOption) (*types.Empty, error)
+	Wait(ctx context.Context, in *WaitRequest, opts ...grpc.CallOption) (*WaitResponse, error)
 }
 
 type wasmdealerClient struct {
@@ -137,6 +139,24 @@ func (c *wasmdealerClient) ListPids(ctx context.Context, in *ListPidsRequest, op
 	return out, nil
 }
 
+func (c *wasmdealerClient) Update(ctx context.Context, in *UpdateTaskRequest, opts ...grpc.CallOption) (*types.Empty, error) {
+	out := new(types.Empty)
+	err := c.cc.Invoke(ctx, "/containerd.services.wasmdealer.v1.Wasmdealer/Update", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *wasmdealerClient) Wait(ctx context.Context, in *WaitRequest, opts ...grpc.CallOption) (*WaitResponse, error) {
+	out := new(WaitResponse)
+	err := c.cc.Invoke(ctx, "/containerd.services.wasmdealer.v1.Wasmdealer/Wait", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WasmdealerServer is the server API for Wasmdealer service.
 // All implementations should embed UnimplementedWasmdealerServer
 // for forward compatibility
@@ -155,6 +175,8 @@ type WasmdealerServer interface {
 	Pause(context.Context, *PauseTaskRequest) (*types.Empty, error)
 	Resume(context.Context, *ResumeTaskRequest) (*types.Empty, error)
 	ListPids(context.Context, *ListPidsRequest) (*ListPidsResponse, error)
+	Update(context.Context, *UpdateTaskRequest) (*types.Empty, error)
+	Wait(context.Context, *WaitRequest) (*WaitResponse, error)
 }
 
 // UnimplementedWasmdealerServer should be embedded to have forward compatible implementations.
@@ -190,6 +212,12 @@ func (UnimplementedWasmdealerServer) Resume(context.Context, *ResumeTaskRequest)
 }
 func (UnimplementedWasmdealerServer) ListPids(context.Context, *ListPidsRequest) (*ListPidsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListPids not implemented")
+}
+func (UnimplementedWasmdealerServer) Update(context.Context, *UpdateTaskRequest) (*types.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+}
+func (UnimplementedWasmdealerServer) Wait(context.Context, *WaitRequest) (*WaitResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Wait not implemented")
 }
 
 // UnsafeWasmdealerServer may be embedded to opt out of forward compatibility for this service.
@@ -383,6 +411,42 @@ func _Wasmdealer_ListPids_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Wasmdealer_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WasmdealerServer).Update(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/containerd.services.wasmdealer.v1.Wasmdealer/Update",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WasmdealerServer).Update(ctx, req.(*UpdateTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Wasmdealer_Wait_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WaitRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WasmdealerServer).Wait(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/containerd.services.wasmdealer.v1.Wasmdealer/Wait",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WasmdealerServer).Wait(ctx, req.(*WaitRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Wasmdealer_ServiceDesc is the grpc.ServiceDesc for Wasmdealer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -429,6 +493,14 @@ var Wasmdealer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListPids",
 			Handler:    _Wasmdealer_ListPids_Handler,
+		},
+		{
+			MethodName: "Update",
+			Handler:    _Wasmdealer_Update_Handler,
+		},
+		{
+			MethodName: "Wait",
+			Handler:    _Wasmdealer_Wait_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

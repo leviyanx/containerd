@@ -343,3 +343,34 @@ func (l *local) ListPids(ctx context.Context, r *api.ListPidsRequest, opts ...gr
 	}, nil
 }
 
+func (l *local) Update(ctx context.Context, r *api.UpdateTaskRequest, opts ...grpc.CallOption) (*types.Empty, error) {
+	t, err := l.runtime.Get(ctx, r.WasmId)
+	if err != nil {
+		return nil, err
+	}
+	if err := t.Update(ctx, anyFromPbToTypes(r.Resources), r.Annotations); err != nil {
+		return nil, errdefs.ToGRPC(err)
+	}
+	return empty, nil
+}
+
+func (l *local) Wait(ctx context.Context, r *api.WaitRequest, opts ...grpc.CallOption) (*api.WaitResponse, error) {
+	t, err := l.runtime.Get(ctx, r.WasmId)
+	if err != nil {
+		return nil, err
+	}
+	p := runtime.Process(t)
+	if r.ExecId != "" {
+		if p, err = t.Process(ctx, r.ExecId); err != nil {
+			return nil, errdefs.ToGRPC(err)
+		}
+	}
+	exit, err := p.Wait(ctx)
+	if err != nil {
+		return nil, errdefs.ToGRPC(err)
+	}
+	return &api.WaitResponse{
+		ExitStatus: exit.Status,
+		ExitedAt:   ToTimestamp(exit.Timestamp),
+	}, nil
+}

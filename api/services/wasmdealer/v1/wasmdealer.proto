@@ -33,6 +33,10 @@ service Wasmdealer {
 	rpc Resume(ResumeTaskRequest) returns (google.protobuf.Empty);
 
 	rpc ListPids(ListPidsRequest) returns (ListPidsResponse);
+
+	rpc Update(UpdateTaskRequest) returns (google.protobuf.Empty);
+
+	rpc Wait(WaitRequest) returns (WaitResponse);
 }
 
 message CreateTaskRequest {
@@ -126,3 +130,18 @@ message ListPidsResponse {
 	repeated containerd.v1.types.ProcessInfo processes = 1;
 }
 
+message UpdateTaskRequest {
+	string wasm_id = 1;
+	google.protobuf.Any resources = 2;
+	map<string, string> annotations = 3;
+}
+
+message WaitRequest {
+	string wasm_id = 1;
+	string exec_id = 2;
+}
+
+message WaitResponse {
+	uint32 exit_status = 1;
+	google.protobuf.Timestamp exited_at = 2;
+}

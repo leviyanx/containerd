@@ -83,3 +83,11 @@ func (s *service) Resume(ctx context.Context, r *api.ResumeTaskRequest) (*types.
 func (s *service) ListPids(ctx context.Context, r *api.ListPidsRequest) (*api.ListPidsResponse, error) {
   return s.local.ListPids(ctx, r)
 }
+
+func (s *service) Update(ctx context.Context, r *api.UpdateTaskRequest) (*types.Empty, error) {
+  return s.local.Update(ctx, r)
+}
+
+func (s *service) Wait(ctx context.Context, r *api.WaitRequest) (*api.WaitResponse, error) {
+  return s.local.Wait(ctx, r)
+}
