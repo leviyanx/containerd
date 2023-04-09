@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package containerd.services.wasmdealer.v1;
 
+import "google/protobuf/empty.proto";
 import "google/protobuf/any.proto";
 import "github.com/containerd/containerd/api/types/task/task.proto";
 import "google/protobuf/timestamp.proto";
@@ -23,6 +24,15 @@ service Wasmdealer {
 	rpc Get(GetRequest) returns (GetResponse);
 
 	rpc List(ListTasksRequest) returns (ListTasksResponse);
+
+	// Kill a task or process.
+	rpc Kill(KillRequest) returns (google.protobuf.Empty);
+
+	rpc Pause(PauseTaskRequest) returns (google.protobuf.Empty);
+
+	rpc Resume(ResumeTaskRequest) returns (google.protobuf.Empty);
+
+	rpc ListPids(ListPidsRequest) returns (ListPidsResponse);
 }
 
 message CreateTaskRequest {
@@ -91,3 +101,28 @@ message ListTasksRequest {
 message ListTasksResponse {
 	repeated containerd.v1.types.Process tasks = 1;
 }
+
+message KillRequest {
+	string wasm_id = 1;
+	string exec_id = 2;
+	uint32 signal = 3;
+	bool all = 4;
+}
+
+message PauseTaskRequest {
+	string wasm_id = 1;
+}
+
+message ResumeTaskRequest {
+	string wasm_id = 1;
+}
+
+message ListPidsRequest {
+	string wasm_id = 1;
+}
+
+message ListPidsResponse {
+	// Processes includes the process ID and additional process information
+	repeated containerd.v1.types.ProcessInfo processes = 1;
+}
+

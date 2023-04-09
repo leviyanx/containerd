@@ -8,6 +8,7 @@ package wasmdealer
 
 import (
 	context "context"
+	types "github.com/gogo/protobuf/types"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -31,6 +32,11 @@ type WasmdealerClient interface {
 	DeleteProcess(ctx context.Context, in *DeleteProcessRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
 	List(ctx context.Context, in *ListTasksRequest, opts ...grpc.CallOption) (*ListTasksResponse, error)
+	// Kill a task or process.
+	Kill(ctx context.Context, in *KillRequest, opts ...grpc.CallOption) (*types.Empty, error)
+	Pause(ctx context.Context, in *PauseTaskRequest, opts ...grpc.CallOption) (*types.Empty, error)
+	Resume(ctx context.Context, in *ResumeTaskRequest, opts ...grpc.CallOption) (*types.Empty, error)
+	ListPids(ctx context.Context, in *ListPidsRequest, opts ...grpc.CallOption) (*ListPidsResponse, error)
 }
 
 type wasmdealerClient struct {
@@ -95,6 +101,42 @@ func (c *wasmdealerClient) List(ctx context.Context, in *ListTasksRequest, opts 
 	return out, nil
 }
 
+func (c *wasmdealerClient) Kill(ctx context.Context, in *KillRequest, opts ...grpc.CallOption) (*types.Empty, error) {
+	out := new(types.Empty)
+	err := c.cc.Invoke(ctx, "/containerd.services.wasmdealer.v1.Wasmdealer/Kill", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *wasmdealerClient) Pause(ctx context.Context, in *PauseTaskRequest, opts ...grpc.CallOption) (*types.Empty, error) {
+	out := new(types.Empty)
+	err := c.cc.Invoke(ctx, "/containerd.services.wasmdealer.v1.Wasmdealer/Pause", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *wasmdealerClient) Resume(ctx context.Context, in *ResumeTaskRequest, opts ...grpc.CallOption) (*types.Empty, error) {
+	out := new(types.Empty)
+	err := c.cc.Invoke(ctx, "/containerd.services.wasmdealer.v1.Wasmdealer/Resume", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *wasmdealerClient) ListPids(ctx context.Context, in *ListPidsRequest, opts ...grpc.CallOption) (*ListPidsResponse, error) {
+	out := new(ListPidsResponse)
+	err := c.cc.Invoke(ctx, "/containerd.services.wasmdealer.v1.Wasmdealer/ListPids", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WasmdealerServer is the server API for Wasmdealer service.
 // All implementations should embed UnimplementedWasmdealerServer
 // for forward compatibility
@@ -108,6 +150,11 @@ type WasmdealerServer interface {
 	DeleteProcess(context.Context, *DeleteProcessRequest) (*DeleteResponse, error)
 	Get(context.Context, *GetRequest) (*GetResponse, error)
 	List(context.Context, *ListTasksRequest) (*ListTasksResponse, error)
+	// Kill a task or process.
+	Kill(context.Context, *KillRequest) (*types.Empty, error)
+	Pause(context.Context, *PauseTaskRequest) (*types.Empty, error)
+	Resume(context.Context, *ResumeTaskRequest) (*types.Empty, error)
+	ListPids(context.Context, *ListPidsRequest) (*ListPidsResponse, error)
 }
 
 // UnimplementedWasmdealerServer should be embedded to have forward compatible implementations.
@@ -131,6 +178,18 @@ func (UnimplementedWasmdealerServer) Get(context.Context, *GetRequest) (*GetResp
 }
 func (UnimplementedWasmdealerServer) List(context.Context, *ListTasksRequest) (*ListTasksResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
+}
+func (UnimplementedWasmdealerServer) Kill(context.Context, *KillRequest) (*types.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Kill not implemented")
+}
+func (UnimplementedWasmdealerServer) Pause(context.Context, *PauseTaskRequest) (*types.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Pause not implemented")
+}
+func (UnimplementedWasmdealerServer) Resume(context.Context, *ResumeTaskRequest) (*types.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Resume not implemented")
+}
+func (UnimplementedWasmdealerServer) ListPids(context.Context, *ListPidsRequest) (*ListPidsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListPids not implemented")
 }
 
 // UnsafeWasmdealerServer may be embedded to opt out of forward compatibility for this service.
@@ -252,6 +311,78 @@ func _Wasmdealer_List_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Wasmdealer_Kill_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KillRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WasmdealerServer).Kill(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/containerd.services.wasmdealer.v1.Wasmdealer/Kill",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WasmdealerServer).Kill(ctx, req.(*KillRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Wasmdealer_Pause_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PauseTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WasmdealerServer).Pause(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/containerd.services.wasmdealer.v1.Wasmdealer/Pause",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WasmdealerServer).Pause(ctx, req.(*PauseTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Wasmdealer_Resume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResumeTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WasmdealerServer).Resume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/containerd.services.wasmdealer.v1.Wasmdealer/Resume",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WasmdealerServer).Resume(ctx, req.(*ResumeTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Wasmdealer_ListPids_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPidsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WasmdealerServer).ListPids(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/containerd.services.wasmdealer.v1.Wasmdealer/ListPids",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WasmdealerServer).ListPids(ctx, req.(*ListPidsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Wasmdealer_ServiceDesc is the grpc.ServiceDesc for Wasmdealer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -282,6 +413,22 @@ var Wasmdealer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "List",
 			Handler:    _Wasmdealer_List_Handler,
+		},
+		{
+			MethodName: "Kill",
+			Handler:    _Wasmdealer_Kill_Handler,
+		},
+		{
+			MethodName: "Pause",
+			Handler:    _Wasmdealer_Pause_Handler,
+		},
+		{
+			MethodName: "Resume",
+			Handler:    _Wasmdealer_Resume_Handler,
+		},
+		{
+			MethodName: "ListPids",
+			Handler:    _Wasmdealer_ListPids_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

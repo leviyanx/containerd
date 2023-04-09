@@ -6,6 +6,7 @@ import (
 
 	api "github.com/containerd/containerd/api/services/wasmdealer/v1"
 	"github.com/containerd/containerd/plugin"
+	"github.com/gogo/protobuf/types"
 	"google.golang.org/grpc"
 )
 
@@ -67,3 +68,18 @@ func (s *service) List(ctx context.Context, r *api.ListTasksRequest) (*api.ListT
   return s.local.List(ctx, r)
 }
 
+func (s *service) Kill(ctx context.Context, r *api.KillRequest) (*types.Empty, error) {
+  return s.local.Kill(ctx, r)
+}
+
+func (s *service) Pause(ctx context.Context, r *api.PauseTaskRequest) (*types.Empty, error) {
+  return s.local.Pause(ctx, r)
+}
+
+func (s *service) Resume(ctx context.Context, r *api.ResumeTaskRequest) (*types.Empty, error) {
+  return s.local.Resume(ctx, r)
+}
+
+func (s *service) ListPids(ctx context.Context, r *api.ListPidsRequest) (*api.ListPidsResponse, error) {
+  return s.local.ListPids(ctx, r)
+}

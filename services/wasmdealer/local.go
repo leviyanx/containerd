@@ -7,14 +7,21 @@ import (
 	api "github.com/containerd/containerd/api/services/wasmdealer/v1"
 	"github.com/containerd/containerd/api/types/task"
 	"github.com/containerd/containerd/errdefs"
-	"github.com/containerd/containerd/plugin"
 	"github.com/containerd/containerd/log"
 	"github.com/containerd/containerd/pkg/timeout"
+	"github.com/containerd/containerd/plugin"
 	"github.com/containerd/containerd/runtime"
 	"github.com/containerd/containerd/services"
+	"github.com/containerd/typeurl"
+	"github.com/gogo/protobuf/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+var (
+	_     = (api.WasmdealerClient)(&local{})
+	empty = &types.Empty{}
 )
 
 const (
@@ -265,5 +272,74 @@ func addTasks(ctx context.Context, r *api.ListTasksResponse, tasks []runtime.Tas
 		}
 		r.Tasks = append(r.Tasks, tt)
 	}
+}
+
+func (l *local) Kill(ctx context.Context, r *api.KillRequest, opts ...grpc.CallOption) (*types.Empty, error) {
+	task, err := l.runtime.Get(ctx, r.WasmId)
+	if err != nil {
+		return nil, err
+	}
+	p := runtime.Process(task)
+	if r.ExecId != "" {
+		if p, err = task.Process(ctx, r.ExecId); err != nil {
+			return nil, errdefs.ToGRPC(err)
+		}
+	}
+	if err := p.Kill(ctx, r.Signal, r.All); err != nil {
+		return nil, errdefs.ToGRPC(err)
+	}
+	return empty, nil
+}
+
+func (l *local) Pause(ctx context.Context, r *api.PauseTaskRequest, opts ...grpc.CallOption) (*types.Empty, error) {
+	task, err := l.runtime.Get(ctx, r.WasmId)
+	if err != nil {
+		return nil, err
+	}
+	err = task.Pause(ctx)
+	if err != nil {
+		return nil, errdefs.ToGRPC(err)
+	}
+	return empty, nil
+}
+
+func (l *local) Resume(ctx context.Context, r *api.ResumeTaskRequest, opts ...grpc.CallOption) (*types.Empty, error) {
+	task, err := l.runtime.Get(ctx, r.WasmId)
+	if err != nil {
+		return nil, err
+	}
+	err = task.Resume(ctx)
+	if err != nil {
+		return nil, errdefs.ToGRPC(err)
+	}
+	return empty, nil
+}
+
+func (l *local) ListPids(ctx context.Context, r *api.ListPidsRequest, opts ...grpc.CallOption) (*api.ListPidsResponse, error) {
+	t, err := l.runtime.Get(ctx, r.WasmId)
+	if err != nil {
+		return nil, err
+	}
+	processList, err := t.Pids(ctx)
+	if err != nil {
+		return nil, errdefs.ToGRPC(err)
+	}
+	var processes []*task.ProcessInfo
+	for _, p := range processList {
+		pInfo := task.ProcessInfo{
+			Pid: p.Pid,
+		}
+		if p.Info != nil {
+			a, err := typeurl.MarshalAny(p.Info)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal process %d info: %w", p.Pid, err)
+			}
+			pInfo.Info = a
+		}
+		processes = append(processes, &pInfo)
+	}
+	return &api.ListPidsResponse{
+		Processes: processes,
+	}, nil
 }
 
