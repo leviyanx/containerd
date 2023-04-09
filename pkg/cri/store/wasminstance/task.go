@@ -36,8 +36,19 @@ func (t *wasmTask) Pid() uint32 {
 }
 
 func (t *wasmTask) Start(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+	response, err := t.client.WasmdealerService().Start(ctx, &wasmdealer.StartRequest{
+		WasmId: t.id,
+	})
+	if err != nil {
+		if t.io != nil {
+			t.io.Cancel()
+			t.io.Close()
+		}
+		return errdefs.FromGRPC(err)
+	}
+
+	t.pid = response.GetPid()
+	return nil
 }
 
 func (t *wasmTask) Kill(ctx context.Context, signal syscall.Signal, opts ...containerd.KillOpts) error {
@@ -73,8 +84,7 @@ func (t *wasmTask) Resize(ctx context.Context, w, h uint32) error {
 }
 
 func (t *wasmTask) IO() containerdio.IO {
-	//TODO implement me
-	panic("implement me")
+	return t.io
 }
 
 func (t *wasmTask) Status(ctx context.Context) (containerd.Status, error) {
