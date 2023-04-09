@@ -10,6 +10,7 @@ import (
 	"github.com/containerd/containerd/plugin"
 	"strings"
 	"syscall"
+	"time"
 )
 
 type WasmTask interface {
@@ -45,8 +46,20 @@ func (t *wasmTask) Kill(ctx context.Context, signal syscall.Signal, opts ...cont
 }
 
 func (t *wasmTask) Wait(ctx context.Context) (<-chan containerd.ExitStatus, error) {
-	//TODO implement me
-	panic("implement me")
+	c := make(chan containerd.ExitStatus, 1)
+	go func() {
+		defer close(c)
+
+		response, err := t.client.WasmdealerService().Wait(ctx, &wasmdealer.WaitRequest{
+			WasmId: t.id,
+		})
+		if err != nil {
+			c <- *containerd.NewExitStatus(containerd.UnknownExitStatus, time.Now(), err)
+			return
+		}
+		c <- *containerd.NewExitStatus(response.GetExitStatus(), response.GetExitedAt().AsTime(), nil)
+	}()
+	return c, nil
 }
 
 func (t *wasmTask) CloseIO(ctx context.Context, opts ...containerd.IOCloserOpts) error {

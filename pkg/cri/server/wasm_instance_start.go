@@ -87,6 +87,13 @@ func (c *criService) StartWasmInstance(ctx context.Context, wasmInstance *wasmin
 		}
 	}()
 
+	// Wait task: wait is a long running operation, no timeout needed.
+	_, err = wasmTask.Wait(ctrdutil.NamespacedContext())
+	if err != nil {
+		return nil, fmt.Errorf("failed to wait for wasm instance task %q: %w", wasmTask.Pid(), err)
+	}
+	// NOTE: We don't need nri
+
 	// TODO: start wasm instance task
 
 	return &runtime.StartContainerResponse{}, nil
