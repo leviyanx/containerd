@@ -188,7 +188,7 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 
 		// Initialize the wasmInstance
 		// 1) Use the same runtime with sandbox
-		wasmInstance, err := wasminstance.NewWasmInstance(ctx, meta,
+		wasmInstance, err := wasminstance.NewWasmInstance(ctx, meta, c.client,
 			wasminstance.WithRuntime(sandboxInfo.Runtime.Name, runtimeOptions),
 			wasminstance.WithStatus(status, wasmInstanceRootDir),
 			wasminstance.WithWasmModule(wasmModule),

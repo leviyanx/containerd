@@ -16,7 +16,7 @@ import (
 )
 
 func (c *criService) StartWasmInstance(ctx context.Context, wasmInstance *wasminstance.WasmInstance, r *runtime.StartContainerRequest) (retRes *runtime.StartContainerResponse, retErr error) {
-	id := wasmInstance.ID
+	id := wasmInstance.ID()
 	meta := wasmInstance.Metadata
 	config := wasmInstance.Config
 
@@ -81,14 +81,15 @@ func (c *criService) StartWasmInstance(ctx context.Context, wasmInstance *wasmin
 			deferCtx, deferCancel := ctrdutil.DeferContext()
 			defer deferCancel()
 			// It's possible that task is deleted by event monitor.
-			if _, err := wasmTask.Delete(deferCtx, WithNRISandboxDelete(sandboxID), containerd.WithProcessKill); err != nil && !errdefs.IsNotFound(err) {
+			// NOTE: Delete wasm task don't need to call WithNRISandboxDelete, because we don't create NRI for wasm task
+			if _, err := wasmTask.Delete(deferCtx, containerd.WithProcessKill); err != nil && !errdefs.IsNotFound(err) {
 				log.G(ctx).WithError(err).Errorf("Failed to delete wasm task %q", id)
 			}
 		}
 	}()
 
 	// Wait task: wait is a long running operation, no timeout needed.
-	_, err = wasmTask.Wait(ctrdutil.NamespacedContext())
+	exitCh, err := wasmTask.Wait(ctrdutil.NamespacedContext())
 	if err != nil {
 		return nil, fmt.Errorf("failed to wait for wasm instance task %q: %w", id, err)
 	}
@@ -107,6 +108,9 @@ func (c *criService) StartWasmInstance(ctx context.Context, wasmInstance *wasmin
 	}); err != nil {
 		return nil, fmt.Errorf("failed to update wasm instance %q state: %w", id, err)
 	}
+
+	// It handles the TaskExit event and updates the status of the wasm instance after this.
+	c.eventMonitor.startWasmInstanceExitMonitor(context.Background(), id, wasmTask.Pid(), exitCh)
 
 	return &runtime.StartContainerResponse{}, nil
 }

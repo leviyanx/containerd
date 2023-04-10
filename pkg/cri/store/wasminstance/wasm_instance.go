@@ -1,8 +1,10 @@
 package wasminstance
 
 import (
+	"fmt"
 	"github.com/containerd/containerd"
 	wasmdealer "github.com/containerd/containerd/api/services/wasmdealer/v1"
+	"github.com/containerd/containerd/api/types/task"
 	containerdio "github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/errdefs"
 	cio "github.com/containerd/containerd/pkg/cri/io"
@@ -10,11 +12,14 @@ import (
 	"github.com/containerd/containerd/pkg/cri/store/label"
 	"github.com/containerd/containerd/pkg/cri/store/truncindex"
 	"github.com/containerd/containerd/pkg/cri/store/wasmmodule"
+	"github.com/containerd/fifo"
 	"github.com/containerd/typeurl"
 	"github.com/gogo/protobuf/types"
 	"golang.org/x/net/context"
 	"google.golang.org/protobuf/types/known/anypb"
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
+	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -27,12 +32,24 @@ type WasmInterface interface {
 
 	// NewTask creates a new task based on the wasm instance
 	NewTask(ctx context.Context, client *containerd.Client, ioCreator IOCreator) (WasmTask, error)
+
+	// Task returns the current task for the wasm instance
+	//
+	// If containerio.Attach options are passed the client will reattch to the IO for the running
+	// task. If no task exists for the wasm instance, a NotFound error is returned.
+	//
+	// Clients must make sure that only one reader is attached to the task and consuming
+	// the output from the task's fifos
+	Task(context.Context, containerdio.Attach) (WasmTask, error)
 }
 
 // WasmInstance contains all resources associated with the wasm instance.
 type WasmInstance struct {
 	// Metadata is the metadata of the wasm instance, it is immutable after created.
 	Metadata
+
+	// client is the containerd client.
+	client *containerd.Client
 
 	// Status stores the status of the wasm instance.
 	Status StatusStorage
@@ -109,9 +126,10 @@ func WithWasmInstanceIO(io *cio.ContainerIO) NewWasmInstanceOpts {
 	}
 }
 
-func NewWasmInstance(ctx context.Context, metadata Metadata, opts ...NewWasmInstanceOpts) (WasmInstance, error) {
+func NewWasmInstance(ctx context.Context, metadata Metadata, client *containerd.Client, opts ...NewWasmInstanceOpts) (WasmInstance, error) {
 	wasmInstance := WasmInstance{
 		Metadata: metadata,
+		client:   client,
 		StopCh:   store.NewStopCh(),
 	}
 
@@ -143,7 +161,7 @@ func (w *WasmInstance) NewTask(ctx context.Context, client *containerd.Client, i
 		return nil, err
 	}
 	defer func() {
-		if err != nil && err != nil {
+		if err != nil && io != nil {
 			io.Cancel()
 			io.Close()
 		}
@@ -161,7 +179,7 @@ func (w *WasmInstance) NewTask(ctx context.Context, client *containerd.Client, i
 		Runtime:        w.Runtime.Name,
 	}
 
-	task := &wasmTask{
+	wasmTask := &wasmTask{
 		client: client,
 		io:     io,
 		id:     w.ID(),
@@ -171,8 +189,80 @@ func (w *WasmInstance) NewTask(ctx context.Context, client *containerd.Client, i
 	if err != nil {
 		return nil, errdefs.FromGRPC(err)
 	}
-	task.pid = responce.GetPid()
-	return task, nil
+	wasmTask.pid = responce.GetPid()
+	return wasmTask, nil
+}
+
+func (w *WasmInstance) Task(ctx context.Context, ioAttach containerdio.Attach) (WasmTask, error) {
+	response, err := w.client.WasmdealerService().Get(ctx, &wasmdealer.GetRequest{
+		WasmId: w.ID(),
+	})
+	if err != nil {
+		err = errdefs.FromGRPC(err)
+		if errdefs.IsNotFound(err) {
+			return nil, fmt.Errorf("no running wasm task found: %w", err)
+		}
+		return nil, err
+	}
+
+	var io containerdio.IO
+	if ioAttach != nil && response.GetProcess().Status != task.StatusUnknown {
+		// Do not attach IO for task in unknown state, because there are
+		// no fifo paths anyway.
+		if io, err = attachExistingIO(response, ioAttach); err != nil {
+			return nil, err
+		}
+	}
+	wasmTask := &wasmTask{
+		client: w.client,
+		io:     io,
+		id:     response.GetProcess().ID,
+		pid:    response.GetProcess().Pid,
+	}
+	return wasmTask, nil
+}
+
+// get the existing fifio paths from the task information store by the daemon
+func attachExistingIO(response *wasmdealer.GetResponse, ioAttach containerdio.Attach) (containerdio.IO, error) {
+	fifoSet := loadFifos(response)
+	return ioAttach(fifoSet)
+}
+
+// loadFifos loads the wasm instance fifos
+func loadFifos(response *wasmdealer.GetResponse) *containerdio.FIFOSet {
+	fifos := []string{
+		response.Process.Stdin,
+		response.Process.Stdout,
+		response.Process.Stderr,
+	}
+	closer := func() error {
+		var (
+			err  error
+			dirs = map[string]struct{}{}
+		)
+		for _, f := range fifos {
+			if isFifo, _ := fifo.IsFifo(f); isFifo {
+				if rerr := os.Remove(f); err == nil {
+					err = rerr
+				}
+				dirs[filepath.Dir(f)] = struct{}{}
+			}
+		}
+		for dir := range dirs {
+			// we ignore errors here because we don't
+			// want to remove the directory if it isn't
+			// empty
+			os.Remove(dir)
+		}
+		return err
+	}
+
+	return containerdio.NewFIFOSet(containerdio.Config{
+		Stdin:    response.Process.Stdin,
+		Stdout:   response.Process.Stdout,
+		Stderr:   response.Process.Stderr,
+		Terminal: response.Process.Terminal,
+	}, closer)
 }
 
 // Store stores all wasm instances

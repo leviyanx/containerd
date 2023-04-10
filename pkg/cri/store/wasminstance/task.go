@@ -26,13 +26,12 @@ type wasmTask struct {
 }
 
 func (t *wasmTask) ID() string {
-	//TODO implement me
-	panic("implement me")
+	return t.id
 }
 
+// Pid returns the pid or process id for the task
 func (t *wasmTask) Pid() uint32 {
-	//TODO implement me
-	panic("implement me")
+	return t.pid
 }
 
 func (t *wasmTask) Start(ctx context.Context) error {
@@ -52,8 +51,24 @@ func (t *wasmTask) Start(ctx context.Context) error {
 }
 
 func (t *wasmTask) Kill(ctx context.Context, signal syscall.Signal, opts ...containerd.KillOpts) error {
-	//TODO implement me
-	panic("implement me")
+	var i containerd.KillInfo
+	for _, o := range opts {
+		if err := o(ctx, &i); err != nil {
+			return err
+		}
+	}
+
+	_, err := t.client.WasmdealerService().Kill(ctx, &wasmdealer.KillRequest{
+		Signal: uint32(signal),
+		WasmId: t.id,
+		ExecId: i.ExecID,
+		All:    i.All,
+	})
+	if err != nil {
+		return errdefs.FromGRPC(err)
+	}
+
+	return nil
 }
 
 func (t *wasmTask) Wait(ctx context.Context) (<-chan containerd.ExitStatus, error) {
