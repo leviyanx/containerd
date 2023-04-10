@@ -41,8 +41,6 @@ import (
 
 // StartContainer starts the container.
 func (c *criService) StartContainer(ctx context.Context, r *runtime.StartContainerRequest) (retRes *runtime.StartContainerResponse, retErr error) {
-	start := time.Now()
-
 	// NOTE: only can find wasm instance in wasmInstanceStore, will start wasm instance, otherwise, will start containerd container
 	// i.e. if wasm instance is not created properly, will start containerd container continually instead report error
 	if wasmInstance, err := c.wasmInstanceStore.Get(r.GetContainerId()); err == nil {
@@ -53,6 +51,7 @@ func (c *criService) StartContainer(ctx context.Context, r *runtime.StartContain
 		return retRes, nil
 	}
 
+	start := time.Now()
 	cntr, err := c.containerStore.Get(r.GetContainerId())
 	if err != nil {
 		return nil, fmt.Errorf("an error occurred when try to find container %q: %w", r.GetContainerId(), err)

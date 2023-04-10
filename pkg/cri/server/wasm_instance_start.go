@@ -16,6 +16,7 @@ import (
 )
 
 func (c *criService) StartWasmInstance(ctx context.Context, wasmInstance *wasminstance.WasmInstance, r *runtime.StartContainerRequest) (retRes *runtime.StartContainerResponse, retErr error) {
+	start := time.Now()
 	id := wasmInstance.ID()
 	meta := wasmInstance.Metadata
 	config := wasmInstance.Config
@@ -111,6 +112,8 @@ func (c *criService) StartWasmInstance(ctx context.Context, wasmInstance *wasmin
 
 	// It handles the TaskExit event and updates the status of the wasm instance after this.
 	c.eventMonitor.startWasmInstanceExitMonitor(context.Background(), id, wasmTask.Pid(), exitCh)
+
+	wasmInstanceStartTimer.WithValues(wasmInstance.Runtime.Name).UpdateSince(start)
 
 	return &runtime.StartContainerResponse{}, nil
 }
