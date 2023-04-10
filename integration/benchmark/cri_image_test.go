@@ -17,7 +17,8 @@ func BenchmarkWasmModuleInCri(b *testing.B) {
 	image := &runtime.ImageSpec{
 		Image: testWasmModuleName,
 		Annotations: map[string]string{
-			"wasm.module.url": "https://github.com/leviyanx/wasm-program-image/raw/main/wasi/wasi_example_main.wasm",
+			"wasm.module.url":       "https://github.com/leviyanx/wasm-program-image/raw/main/wasi/wasi_example_main.wasm",
+			"wasm.module.extension": "*.wasm",
 		},
 	}
 
