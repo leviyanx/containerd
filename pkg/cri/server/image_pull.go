@@ -129,7 +129,9 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 		wasmModuleId := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 
 		// generate wasm module file path
-		wasmModuleFilePath := filepath.Join("/wasm", wasmModuleName)
+		// wasm module path: /wasmmodules/<wasm module id>/<wasm module name>
+		// `/wasmmodules` store all wasm modules
+		wasmModuleFilePath := filepath.Join("/wasmmodules", wasmModuleId, wasmModuleName)
 
 		// create wasm module
 		wasmModule := wasmmodule.WasmModule{
