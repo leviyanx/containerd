@@ -35,7 +35,7 @@ type Metadata struct {
 	// WasmModuleName is the name of the wasm module used by the wasm instance.
 	WasmModuleName string
 
-	// LogPath is the wasm instance log path.
+	// StopSignal is the system call signal that will be sent to the wasm instance to exit.
 	StopSignal string
 
 	// Runtime specifies which runtime should be used when lanuching the wasm instance tasks.
