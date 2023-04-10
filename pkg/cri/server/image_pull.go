@@ -98,6 +98,13 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 	if wasmmodule.IsWasmModule(r.GetImage()) {
 		wasmModuleName := r.GetImage().GetImage()
 		wasmModuleUrl := r.GetImage().GetAnnotations()["wasm.module.url"]
+		// wasm.module.extension format: *.wasm
+		ext := r.GetImage().GetAnnotations()["wasm.module.extension"]
+		if ext == "" {
+			return nil, fmt.Errorf("wasm.module.extension cannot be empty")
+		}
+		// TODO: check if extension is fitting format
+		wasmModuleFilename := wasmModuleName + "." + strings.TrimLeft(ext, "*.") // e.g. "hello_world.wasm"
 
 		// download wasm module
 		fetchWasmModuleFromUrl := func(url string) ([]byte, error) {
@@ -129,9 +136,9 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 		wasmModuleId := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 
 		// generate wasm module file path
-		// wasm module path: /wasmmodules/<wasm module id>/<wasm module name>
+		// wasm module path: /wasmmodules/<wasm module id>/<wasm module file name>, e.g. /wasmmodules/1a2b3c4d5e6f7g8h9i0j/hello_world.wasm
 		// `/wasmmodules` store all wasm modules
-		wasmModuleFilePath := filepath.Join("/wasmmodules", wasmModuleId, wasmModuleName)
+		wasmModuleFilePath := filepath.Join("/wasmmodules", wasmModuleId, wasmModuleFilename)
 
 		// create wasm module
 		wasmModule := wasmmodule.WasmModule{
