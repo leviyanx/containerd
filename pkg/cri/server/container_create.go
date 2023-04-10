@@ -40,6 +40,7 @@ import (
 	customopts "github.com/containerd/containerd/pkg/cri/opts"
 	containerstore "github.com/containerd/containerd/pkg/cri/store/container"
 	wasminstance "github.com/containerd/containerd/pkg/cri/store/wasminstance"
+	"github.com/containerd/containerd/pkg/cri/config"
 	"github.com/containerd/containerd/pkg/cri/util"
 	ctrdutil "github.com/containerd/containerd/pkg/cri/util"
 )
@@ -447,7 +448,18 @@ func (c *criService) createWasmInstance(ctx context.Context, r *runtime.CreateCo
 	}
 	log.G(ctx).Debugf("Using wasm runtime %+v  for sandbox %q and wasm instance %q", wasmRuntime, sandboxID, id)
 
-	// TODO: generate wasm instance spec, specOpts
+  // mount the wasm file path from host path to container path '/'
+	var volumeMounts = []*runtime.Mount {
+    {
+      ContainerPath: "/",
+      HostPath: filepath.Dir(wasmModule.GetFilepath()),
+    },
+  }
+  spec, err := c.wasmSpec(ctx, id, wasmModule.GetName(), sandboxConfig, wasmRuntime, volumeMounts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate wasm %q spec: %w", id, err)
+	}
+
 	// TODO: handle any KVM based runtime
 
 	// NOTE: don't create snapshotter
@@ -491,6 +503,7 @@ func (c *criService) createWasmInstance(ctx context.Context, r *runtime.CreateCo
 	// Initialize the wasmInstance
 	// 1) Use the same runtime with sandbox
 	wasmInstance, err := wasminstance.NewWasmInstance(ctx, meta, c.client,
+    wasminstance.WithSpec(spec),
 		wasminstance.WithRuntime(sandboxInfo.Runtime.Name, runtimeOptions),
 		wasminstance.WithStatus(status, wasmInstanceRootDir),
 		wasminstance.WithWasmModule(wasmModule),
@@ -517,3 +530,39 @@ func (c *criService) createWasmInstance(ctx context.Context, r *runtime.CreateCo
 
 	return &runtime.CreateContainerResponse{ContainerId: id}, nil
 }
+
+// generate basic spec for wasm
+func (c *criService) wasmSpec(ctx context.Context, id string, filename string, sandboxConfig *runtime.PodSandboxConfig, ociRuntime config.Runtime, extraMounts []*runtime.Mount) (*runtimespec.Spec, error) {
+	specOpts := []oci.SpecOpts{
+		oci.WithoutRunMount,
+	}
+	// only clear the default security settings if the runtime does not have a custom
+	// base runtime spec spec.  Admins can use this functionality to define
+	// default ulimits, seccomp, or other default settings.
+	if ociRuntime.BaseRuntimeSpec == "" {
+		specOpts = append(specOpts, customopts.WithoutDefaultSecuritySettings)
+	}
+  specOpts = append(specOpts,
+		customopts.WithRelativeRoot(relativeRootfsPath),
+		oci.WithDefaultPathEnv,
+	)
+	// Add HOSTNAME env.
+	var (
+		err      error
+		hostname = sandboxConfig.GetHostname()
+	)
+	if hostname == "" {
+		if hostname, err = c.os.Hostname(); err != nil {
+			return nil, err
+		}
+	}
+	specOpts = append(specOpts, oci.WithEnv([]string{hostnameEnv + "=" + hostname}))
+
+  // set wasm filename as cmd
+	specOpts = append(specOpts, oci.WithProcessArgs(filename))
+
+  // use empty container config and selinux label.to get necessary work done
+	specOpts = append(specOpts, customopts.WithMounts(c.os, &runtime.ContainerConfig{}, []*runtime.Mount{}, ""))
+  return oci.GenerateSpec(ctx, nil, &containers.Container{ ID: id }, specOpts...)
+}
+

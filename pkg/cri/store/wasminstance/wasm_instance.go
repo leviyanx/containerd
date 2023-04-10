@@ -2,11 +2,16 @@ package wasminstance
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
+
 	"github.com/containerd/containerd"
 	wasmdealer "github.com/containerd/containerd/api/services/wasmdealer/v1"
 	"github.com/containerd/containerd/api/types/task"
 	containerdio "github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/errdefs"
+	"github.com/containerd/containerd/oci"
 	cio "github.com/containerd/containerd/pkg/cri/io"
 	"github.com/containerd/containerd/pkg/cri/store"
 	"github.com/containerd/containerd/pkg/cri/store/label"
@@ -18,9 +23,6 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/protobuf/types/known/anypb"
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
-	"os"
-	"path/filepath"
-	"sync"
 )
 
 type IOCreator func(id string) (containerdio.IO, error)
@@ -93,6 +95,19 @@ func WithRuntime(name string, options interface{}) NewWasmInstanceOpts {
 		}
 		return nil
 	}
+}
+func WithSpec(s *oci.Spec) NewWasmInstanceOpts {
+	return func(ctx context.Context, w *WasmInstance) error {
+    typesAny, err := typeurl.MarshalAny(s)
+    if err != nil {
+      return err
+    }
+    w.Spec = &anypb.Any{
+      TypeUrl: typesAny.TypeUrl,
+      Value:   typesAny.Value,
+    }
+    return nil
+  }
 }
 
 func WithStatus(status Status, root string) NewWasmInstanceOpts {
