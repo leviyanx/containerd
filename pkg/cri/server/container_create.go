@@ -52,6 +52,12 @@ func init() {
 // CreateContainer creates a new container in the given PodSandbox.
 func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateContainerRequest) (_ *runtime.CreateContainerResponse, retErr error) {
 	config := r.GetConfig()
+
+	// when the image is wasm module, create a wasm instance instead of a container
+	if wasmmodule.IsWasmModule(config.GetImage()) {
+    return c.createWasmInstace(ctx, r)
+	}
+
 	log.G(ctx).Debugf("Container config %+v", config)
 	sandboxConfig := r.GetSandboxConfig()
 	sandbox, err := c.sandboxStore.Get(r.GetPodSandboxId())
@@ -64,157 +70,6 @@ func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateConta
 		return nil, fmt.Errorf("failed to get sandbox container task: %w", err)
 	}
 	sandboxPid := s.Pid()
-
-	// when the image is wasm module, create a wasm instance instead of a container
-	if wasmmodule.IsWasmModule(r.GetConfig().GetImage()) {
-		// Generate unique id and name for the wasm instance and reserve the name.
-		// Reserve the wasm instance name to avoid concurrent `CreateContainer` request creating
-		// the same wasm instance.
-		id := util.GenerateID()
-		metadata := config.GetMetadata()
-		if metadata == nil {
-			return nil, errors.New("container config must include metadata")
-		}
-		name := makeContainerName(metadata, sandboxConfig.GetMetadata())
-		log.G(ctx).Debugf("Generated id %q for wasm instance %q", id, name)
-		if err = c.wasmInstanceNameIndex.Reserve(name, id); err != nil {
-			return nil, fmt.Errorf("failed to reserve wasm instance name %q: %w", name, err)
-		}
-		defer func() {
-			// Release the name if the function returns with an error.
-			if retErr != nil {
-				c.wasmInstanceNameIndex.ReleaseByName(name)
-			}
-		}()
-
-		// Create initial internal wasm instance metadata.
-		meta := wasminstance.Metadata{
-			ID:        id,
-			Name:      name,
-			SandboxID: sandboxID,
-			Config:    config,
-		}
-
-		// get wasm module
-		wasmModule, err := c.wasmModuleStore.Get(config.GetImage().GetImage())
-		if err != nil {
-			return nil, fmt.Errorf("failed to find wasm module %q: %w", config.GetImage().GetImage(), err)
-		}
-		meta.WasmModuleName = wasmModule.Name
-
-		start := time.Now()
-		// Run wasm instance using the same runtime with sandbox
-		sandboxInfo, err := sandbox.Container.Info(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get sandbox container info: %w", err)
-		}
-
-		// create wasm instance root directory (but without volatile directory)
-		wasmInstanceRootDir := c.getWasmInstanceRootDir(id)
-		if err = c.os.MkdirAll(wasmInstanceRootDir, 0755); err != nil {
-			return nil, fmt.Errorf("failed to create wasm instance root directory %q: %w", wasmInstanceRootDir, err)
-		}
-		defer func() {
-			if retErr != nil {
-				if err = c.os.RemoveAll(wasmInstanceRootDir); err != nil {
-					log.G(ctx).WithError(err).Errorf("Failed to remove wasm instance root directory %q", wasmInstanceRootDir)
-				}
-			}
-		}()
-		meta.WasmInstanceRootDir = wasmInstanceRootDir
-		volatileWasmInstanceRootDir := c.getVolatileWasmInstanceRootDir(id)
-		if err = c.os.MkdirAll(volatileWasmInstanceRootDir, 0755); err != nil {
-			return nil, fmt.Errorf("failed to create volatile wasm instance root directory %q: %w", volatileWasmInstanceRootDir, err)
-		}
-		defer func() {
-			if retErr != nil {
-				// Cleanup the volatile wasm instance root directory.
-				if err = c.os.RemoveAll(volatileWasmInstanceRootDir); err != nil {
-					log.G(ctx).WithError(err).Errorf("Failed to remove volatile wasm instance root directory %q", volatileWasmInstanceRootDir)
-				}
-			}
-		}()
-
-		// NOTE: don't create wasm module volumes mounts
-		// NOTE: don't generate wasm instance mounts
-
-		// get wasm runtime
-		wasmRuntime, err := c.getSandboxRuntime(sandboxConfig, sandbox.Metadata.RuntimeHandler)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get sandbox runtime: %w", err)
-		}
-		log.G(ctx).Debugf("Using wasm runtime %+v  for sandbox %q and wasm instance %q", wasmRuntime, sandboxID, id)
-
-		// TODO: generate wasm instance spec, specOpts
-		// TODO: handle any KVM based runtime
-
-		// NOTE: don't create snapshotter
-
-		// TODO: get stopSignal
-
-		// Validate log paths and compose full log paths.
-		if sandboxConfig.GetLogDirectory() != "" && config.GetLogPath() != "" {
-			meta.LogPath = filepath.Join(sandboxConfig.GetLogDirectory(), config.GetLogPath())
-		} else {
-			log.G(ctx).Infof("Logging will be disabled due to empty log paths for sandbox (%q) or wasm instance (%q)",
-				sandboxConfig.GetLogDirectory(), config.GetLogPath())
-		}
-
-		// Create wasm instance IO
-		wasmInstanceIO, err := cio.NewContainerIO(id,
-			cio.WithNewFIFOs(volatileWasmInstanceRootDir, config.GetTty(), config.GetStdin()))
-		if err != nil {
-			return nil, fmt.Errorf("failed to create wasm instance IO: %w", err)
-		}
-		defer func() {
-			if retErr != nil {
-				if err = wasmInstanceIO.Close(); err != nil {
-					log.G(ctx).WithError(err).Errorf("Failed to close wasm instance IO %q", id)
-				}
-			}
-		}()
-
-		// There are no labels that come from image config
-		wasmInstanceLabels := buildLabels(config.Labels, make(map[string]string), "wasm instance")
-		meta.Labels = wasmInstanceLabels
-
-		runtimeOptions, err := getRuntimeOptions(sandboxInfo)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get runtime options: %w", err)
-		}
-
-		status := wasminstance.Status{CreatedAt: time.Now().UnixNano()}
-		// TODO: copy spec to status
-
-		// Initialize the wasmInstance
-		// 1) Use the same runtime with sandbox
-		wasmInstance, err := wasminstance.NewWasmInstance(ctx, meta, c.client,
-			wasminstance.WithRuntime(sandboxInfo.Runtime.Name, runtimeOptions),
-			wasminstance.WithStatus(status, wasmInstanceRootDir),
-			wasminstance.WithWasmModule(wasmModule),
-			wasminstance.WithWasmInstanceIO(wasmInstanceIO),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create wasm instance for %q: %w", id, err)
-		}
-		defer func() {
-			if retErr != nil {
-				// Cleanup wasm instance checkpoint on error.
-				if err := wasmInstance.Delete(); err != nil {
-					log.G(ctx).WithError(err).Errorf("Failed to cleanup wasm instance checkpoint for %q", id)
-				}
-			}
-		}()
-
-		// add wasm instance into store
-		if err := c.wasmInstanceStore.Add(wasmInstance); err != nil {
-			return nil, fmt.Errorf("failed to add wasm instance %q into store: %w", id, err)
-		}
-
-		wasmInstanceCreateTimer.WithValues(wasmRuntime.Type).UpdateSince(start)
-
-		return &runtime.CreateContainerResponse{ContainerId: id}, nil
-	}
 
 	// Generate unique id and name for the container and reserve the name.
 	// Reserve the container name to avoid concurrent `CreateContainer` request creating
@@ -500,4 +355,165 @@ func (c *criService) runtimeSpec(id string, baseSpecFile string, opts ...oci.Spe
 	}
 
 	return spec, nil
+}
+
+func (c *criService) createWasmInstace(ctx context.Context, r *runtime.CreateContainerRequest) (_ *runtime.CreateContainerResponse, retErr error) {
+	config := r.GetConfig()
+
+	log.G(ctx).Debugf("Container config %+v", config)
+	sandboxConfig := r.GetSandboxConfig()
+	sandbox, err := c.sandboxStore.Get(r.GetPodSandboxId())
+	if err != nil {
+		return nil, fmt.Errorf("failed to find sandbox id %q: %w", r.GetPodSandboxId(), err)
+	}
+	sandboxID := sandbox.ID
+
+  // Generate unique id and name for the wasm instance and reserve the name.
+  // Reserve the wasm instance name to avoid concurrent `CreateContainer` request creating
+  // the same wasm instance.
+  id := util.GenerateID()
+  metadata := config.GetMetadata()
+  if metadata == nil {
+    return nil, errors.New("container config must include metadata")
+  }
+  name := makeContainerName(metadata, sandboxConfig.GetMetadata())
+  log.G(ctx).Debugf("Generated id %q for wasm instance %q", id, name)
+  // TODO: use containerNameIndex instead, in case of id conflict
+  if err = c.wasmInstanceNameIndex.Reserve(name, id); err != nil {
+    return nil, fmt.Errorf("failed to reserve wasm instance name %q: %w", name, err)
+  }
+  defer func() {
+    // Release the name if the function returns with an error.
+    if retErr != nil {
+      c.wasmInstanceNameIndex.ReleaseByName(name)
+    }
+  }()
+
+  // Create initial internal wasm instance metadata.
+  meta := wasminstance.Metadata{
+    ID:        id,
+    Name:      name,
+    SandboxID: sandboxID,
+    Config:    config,
+  }
+
+  // get wasm module
+  wasmModule, err := c.wasmModuleStore.Get(config.GetImage().GetImage())
+  if err != nil {
+    return nil, fmt.Errorf("failed to find wasm module %q: %w", config.GetImage().GetImage(), err)
+  }
+  meta.WasmModuleName = wasmModule.Name
+
+  start := time.Now()
+  // Run wasm instance using the same runtime with sandbox
+  sandboxInfo, err := sandbox.Container.Info(ctx)
+  if err != nil {
+    return nil, fmt.Errorf("failed to get sandbox container info: %w", err)
+  }
+
+  // create wasm instance root directory (but without volatile directory)
+  wasmInstanceRootDir := c.getWasmInstanceRootDir(id)
+  if err = c.os.MkdirAll(wasmInstanceRootDir, 0755); err != nil {
+    return nil, fmt.Errorf("failed to create wasm instance root directory %q: %w", wasmInstanceRootDir, err)
+  }
+  defer func() {
+    if retErr != nil {
+      if err = c.os.RemoveAll(wasmInstanceRootDir); err != nil {
+        log.G(ctx).WithError(err).Errorf("Failed to remove wasm instance root directory %q", wasmInstanceRootDir)
+      }
+    }
+  }()
+  meta.WasmInstanceRootDir = wasmInstanceRootDir
+  volatileWasmInstanceRootDir := c.getVolatileWasmInstanceRootDir(id)
+  if err = c.os.MkdirAll(volatileWasmInstanceRootDir, 0755); err != nil {
+    return nil, fmt.Errorf("failed to create volatile wasm instance root directory %q: %w", volatileWasmInstanceRootDir, err)
+  }
+  defer func() {
+    if retErr != nil {
+      // Cleanup the volatile wasm instance root directory.
+      if err = c.os.RemoveAll(volatileWasmInstanceRootDir); err != nil {
+        log.G(ctx).WithError(err).Errorf("Failed to remove volatile wasm instance root directory %q", volatileWasmInstanceRootDir)
+      }
+    }
+  }()
+
+  // NOTE: don't create wasm module volumes mounts
+  // NOTE: don't generate wasm instance mounts
+
+  // get wasm runtime
+  wasmRuntime, err := c.getSandboxRuntime(sandboxConfig, sandbox.Metadata.RuntimeHandler)
+  if err != nil {
+    return nil, fmt.Errorf("failed to get sandbox runtime: %w", err)
+  }
+  log.G(ctx).Debugf("Using wasm runtime %+v  for sandbox %q and wasm instance %q", wasmRuntime, sandboxID, id)
+
+  // TODO: generate wasm instance spec, specOpts
+  // TODO: handle any KVM based runtime
+
+  // NOTE: don't create snapshotter
+
+  // TODO: get stopSignal
+
+  // Validate log paths and compose full log paths.
+  if sandboxConfig.GetLogDirectory() != "" && config.GetLogPath() != "" {
+    meta.LogPath = filepath.Join(sandboxConfig.GetLogDirectory(), config.GetLogPath())
+  } else {
+    log.G(ctx).Infof("Logging will be disabled due to empty log paths for sandbox (%q) or wasm instance (%q)",
+      sandboxConfig.GetLogDirectory(), config.GetLogPath())
+  }
+
+  // Create wasm instance IO
+  wasmInstanceIO, err := cio.NewContainerIO(id,
+    cio.WithNewFIFOs(volatileWasmInstanceRootDir, config.GetTty(), config.GetStdin()))
+  if err != nil {
+    return nil, fmt.Errorf("failed to create wasm instance IO: %w", err)
+  }
+  defer func() {
+    if retErr != nil {
+      if err = wasmInstanceIO.Close(); err != nil {
+        log.G(ctx).WithError(err).Errorf("Failed to close wasm instance IO %q", id)
+      }
+    }
+  }()
+
+  // There are no labels that come from image config
+  wasmInstanceLabels := buildLabels(config.Labels, make(map[string]string), "wasm instance")
+  meta.Labels = wasmInstanceLabels
+
+  runtimeOptions, err := getRuntimeOptions(sandboxInfo)
+  if err != nil {
+    return nil, fmt.Errorf("failed to get runtime options: %w", err)
+  }
+
+  status := wasminstance.Status{CreatedAt: time.Now().UnixNano()}
+  // TODO: copy spec to status
+
+  // Initialize the wasmInstance
+  // 1) Use the same runtime with sandbox
+  wasmInstance, err := wasminstance.NewWasmInstance(ctx, meta,
+    wasminstance.WithRuntime(sandboxInfo.Runtime.Name, runtimeOptions),
+    wasminstance.WithStatus(status, wasmInstanceRootDir),
+    wasminstance.WithWasmModule(wasmModule),
+    wasminstance.WithWasmInstanceIO(wasmInstanceIO),
+  )
+  if err != nil {
+    return nil, fmt.Errorf("failed to create wasm instance for %q: %w", id, err)
+  }
+  defer func() {
+    if retErr != nil {
+      // Cleanup wasm instance checkpoint on error.
+      if err := wasmInstance.Delete(); err != nil {
+        log.G(ctx).WithError(err).Errorf("Failed to cleanup wasm instance checkpoint for %q", id)
+      }
+    }
+  }()
+
+  // add wasm instance into store
+  if err := c.wasmInstanceStore.Add(wasmInstance); err != nil {
+    return nil, fmt.Errorf("failed to add wasm instance %q into store: %w", id, err)
+  }
+
+  wasmInstanceCreateTimer.WithValues(wasmRuntime.Type).UpdateSince(start)
+
+  return &runtime.CreateContainerResponse{ContainerId: id}, nil
 }
