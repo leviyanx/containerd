@@ -35,6 +35,12 @@ import (
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
 func (c *criService) StopContainer(ctx context.Context, r *runtime.StopContainerRequest) (*runtime.StopContainerResponse, error) {
+	// NOTE: only can find wasm instance in wasmInstanceStore, will stop wasm instance, otherwise, will stop containerd container
+	// i.e. if wasm instance is not created properly, will stop containerd container continually instead report error
+	if wasmInstance, err := c.wasmInstanceStore.Get(r.GetContainerId()); err == nil {
+		return c.StopWasmInstance(ctx, &wasmInstance, r)
+	}
+
 	start := time.Now()
 	// Get container config from container store.
 	container, err := c.containerStore.Get(r.GetContainerId())
