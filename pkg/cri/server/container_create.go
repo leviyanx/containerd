@@ -562,7 +562,7 @@ func (c *criService) wasmSpec(ctx context.Context, id string, filename string, s
 	specOpts = append(specOpts, oci.WithProcessArgs(filename))
 
   // use empty container config and selinux label.to get necessary work done
-	specOpts = append(specOpts, customopts.WithMounts(c.os, &runtime.ContainerConfig{}, []*runtime.Mount{}, ""))
+	specOpts = append(specOpts, customopts.WithMounts(c.os, &runtime.ContainerConfig{}, extraMounts, ""))
   return oci.GenerateSpec(ctx, nil, &containers.Container{ ID: id }, specOpts...)
 }
 
