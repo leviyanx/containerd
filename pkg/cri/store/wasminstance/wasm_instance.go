@@ -63,6 +63,10 @@ type WasmInstance struct {
 	// StopCh is used to propagate the stop information of the wasm instance.
 	*store.StopCh
 
+	// IsStopSignaledWithTimeout the default is 0, and it is set to 1 after sending
+	// the signal once to avoid repeated sending of the signal.
+	IsStopSignaledWithTimeout *uint32
+
 	// WasmModule is the wasm module the wasm instance belongs to.
 	WasmModule wasmmodule.WasmModule
 }
@@ -98,16 +102,16 @@ func WithRuntime(name string, options interface{}) NewWasmInstanceOpts {
 }
 func WithSpec(s *oci.Spec) NewWasmInstanceOpts {
 	return func(ctx context.Context, w *WasmInstance) error {
-    typesAny, err := typeurl.MarshalAny(s)
-    if err != nil {
-      return err
-    }
-    w.Spec = &anypb.Any{
-      TypeUrl: typesAny.TypeUrl,
-      Value:   typesAny.Value,
-    }
-    return nil
-  }
+		typesAny, err := typeurl.MarshalAny(s)
+		if err != nil {
+			return err
+		}
+		w.Spec = &anypb.Any{
+			TypeUrl: typesAny.TypeUrl,
+			Value:   typesAny.Value,
+		}
+		return nil
+	}
 }
 
 func WithStatus(status Status, root string) NewWasmInstanceOpts {
@@ -143,9 +147,10 @@ func WithWasmInstanceIO(io *cio.ContainerIO) NewWasmInstanceOpts {
 
 func NewWasmInstance(ctx context.Context, metadata Metadata, client *containerd.Client, opts ...NewWasmInstanceOpts) (WasmInstance, error) {
 	wasmInstance := WasmInstance{
-		Metadata: metadata,
-		client:   client,
-		StopCh:   store.NewStopCh(),
+		Metadata:                  metadata,
+		client:                    client,
+		StopCh:                    store.NewStopCh(),
+		IsStopSignaledWithTimeout: new(uint32),
 	}
 
 	for _, o := range opts {

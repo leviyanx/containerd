@@ -86,6 +86,9 @@ type WasmModuleSpec struct {
 	// Config >>>
 	// Cmd defines the default command for the wasm module / wasm instance
 	Cmd []string
+
+	// StopSignal containers the system call signal that will be sent to the wasm instance to exit.
+	StopSignal string
 	// <<< Config
 }
 
