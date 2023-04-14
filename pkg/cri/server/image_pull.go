@@ -101,7 +101,8 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 		// wasm.module.extension format: *.wasm
 		ext := r.GetImage().GetAnnotations()["wasm.module.extension"]
 		if ext == "" {
-			return nil, fmt.Errorf("wasm.module.extension cannot be empty")
+			logrus.Warningf("wasm.module.extension is empty, so use default extension: *.wasm")
+			ext = "*.wasm"
 		}
 		// TODO: check if extension is fitting format
 		wasmModuleFilename := wasmModuleName + "." + strings.TrimLeft(ext, "*.") // e.g. "hello_world.wasm"
