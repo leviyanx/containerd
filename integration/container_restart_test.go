@@ -32,8 +32,8 @@ func TestWasmInstanceRestart(t *testing.T) {
 	wasmModule := &runtime.ImageSpec{
 		Image: "wasm-example",
 		Annotations: map[string]string{
-			"wasm.module.url":       "https://github.com/leviyanx/wasm-program-image/raw/main/wasi/wasi_example_main.wasm",
-			"wasm.module.extension": "*.wasm",
+			"wasm.module.url":      "https://github.com/leviyanx/wasm-program-image/raw/main/wasi/wasi_example_main.wasm",
+			"wasm.module.filename": "wasi_example_main.wasm",
 		},
 	}
 

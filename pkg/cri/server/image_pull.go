@@ -98,14 +98,10 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 	if wasmmodule.IsWasmModule(r.GetImage()) {
 		wasmModuleName := r.GetImage().GetImage()
 		wasmModuleUrl := r.GetImage().GetAnnotations()["wasm.module.url"]
-		// wasm.module.extension format: *.wasm
-		ext := r.GetImage().GetAnnotations()["wasm.module.extension"]
-		if ext == "" {
-			logrus.Warningf("wasm.module.extension is empty, so use default extension: *.wasm")
-			ext = "*.wasm"
+		wasmModuleFilename, filenameExist := r.GetImage().GetAnnotations()["wasm.module.filename"]
+		if !filenameExist || wasmModuleFilename == "" {
+			return nil, fmt.Errorf("wasm module filename is empty")
 		}
-		// TODO: check if extension is fitting format
-		wasmModuleFilename := wasmModuleName + "." + strings.TrimLeft(ext, "*.") // e.g. "hello_world.wasm"
 
 		// download wasm module
 		fetchWasmModuleFromUrl := func(url string) ([]byte, error) {
