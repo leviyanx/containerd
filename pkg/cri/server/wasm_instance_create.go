@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
+	"time"
+
 	"github.com/containerd/containerd/containers"
 	"github.com/containerd/containerd/log"
 	"github.com/containerd/containerd/oci"
@@ -11,11 +14,10 @@ import (
 	cio "github.com/containerd/containerd/pkg/cri/io"
 	customopts "github.com/containerd/containerd/pkg/cri/opts"
 	"github.com/containerd/containerd/pkg/cri/store/wasminstance"
+	"github.com/containerd/containerd/pkg/cri/store/wasmmodule"
 	"github.com/containerd/containerd/pkg/cri/util"
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
-	"path/filepath"
-	"time"
 )
 
 func (c *criService) createWasmInstance(ctx context.Context, r *runtime.CreateContainerRequest) (_ *runtime.CreateContainerResponse, retErr error) {
@@ -108,14 +110,7 @@ func (c *criService) createWasmInstance(ctx context.Context, r *runtime.CreateCo
 	}
 	log.G(ctx).Debugf("Using wasm runtime %+v  for sandbox %q and wasm instance %q", wasmRuntime, sandboxID, id)
 
-	// mount the wasm file path from host path to container path '/'
-	var volumeMounts = []*runtime.Mount{
-		{
-			ContainerPath: "/",
-			HostPath:      filepath.Dir(wasmModule.GetFilepath()),
-		},
-	}
-	spec, err := c.wasmSpec(ctx, id, wasmModule.GetName(), sandboxConfig, wasmRuntime, volumeMounts)
+	spec, err := c.wasmSpec(ctx, id, &wasmModule, containerConfig, sandboxConfig, wasmRuntime)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate wasm %q spec: %w", id, err)
 	}
@@ -192,7 +187,15 @@ func (c *criService) createWasmInstance(ctx context.Context, r *runtime.CreateCo
 }
 
 // generate basic spec for wasm
-func (c *criService) wasmSpec(ctx context.Context, id string, filename string, sandboxConfig *runtime.PodSandboxConfig, ociRuntime config.Runtime, extraMounts []*runtime.Mount) (*runtimespec.Spec, error) {
+func (c *criService) wasmSpec(
+  ctx context.Context,
+  id string,
+  wasmModule *wasmmodule.WasmModule,
+	config *runtime.ContainerConfig,
+  sandboxConfig *runtime.PodSandboxConfig,
+  ociRuntime config.Runtime,
+) (*runtimespec.Spec, error) {
+
 	specOpts := []oci.SpecOpts{
 		oci.WithoutRunMount,
 	}
@@ -218,10 +221,29 @@ func (c *criService) wasmSpec(ctx context.Context, id string, filename string, s
 	}
 	specOpts = append(specOpts, oci.WithEnv([]string{hostnameEnv + "=" + hostname}))
 
-	// set wasm filename as cmd
-	specOpts = append(specOpts, oci.WithProcessArgs(filename))
+  // set command
+	specOpts = append(specOpts, withProcessArgs(wasmModule, config))
+
+	// mount the wasm file path from host path to container path '/'
+	var volumeMounts = []*runtime.Mount{
+		{
+			ContainerPath: "/",
+			HostPath:      filepath.Dir(wasmModule.GetFilepath()),
+		},
+	}
 
 	// use empty container config and selinux label.to get necessary work done
-	specOpts = append(specOpts, customopts.WithMounts(c.os, &runtime.ContainerConfig{}, extraMounts, ""))
+	specOpts = append(specOpts, customopts.WithMounts(c.os, &runtime.ContainerConfig{}, volumeMounts, ""))
 	return oci.GenerateSpec(ctx, nil, &containers.Container{ID: id}, specOpts...)
+}
+
+func withProcessArgs(wasmModule *wasmmodule.WasmModule, config *runtime.ContainerConfig) oci.SpecOpts {
+	return func(ctx context.Context, client oci.Client, c *containers.Container, s *runtimespec.Spec) (err error) {
+		command, args := config.GetCommand(), config.GetArgs()
+    if command == nil || len(command) == 0 {
+      filename := filepath.Base(wasmModule.GetFilepath())
+      return oci.WithProcessArgs(filename)(ctx, client, c, s)
+    }
+    return oci.WithProcessArgs(append(command, args...)...)(ctx, client, c, s)
+  }
 }

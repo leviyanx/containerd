@@ -95,8 +95,6 @@ func (l *local) Create(ctx context.Context, r *api.CreateTaskRequest, _ ...grpc.
 		TaskOptions:    anyFromPbToTypes(r.TaskOptions),
 	}
 
-  // TODO: mount wasm path to main rootfas
-
   _, err := l.runtime.Get(ctx, r.WasmId)
 	if err != nil && err != runtime.ErrTaskNotExists {
 		return nil, errdefs.ToGRPC(err)
