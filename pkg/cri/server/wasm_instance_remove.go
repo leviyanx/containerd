@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/containerd/containerd/errdefs"
+	"github.com/containerd/containerd/log"
 	"github.com/containerd/containerd/pkg/cri/store/wasminstance"
 	"github.com/sirupsen/logrus"
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -29,6 +31,25 @@ func (c *criService) RemoveWasmInstance(ctx context.Context, wasmInstance *wasmi
 	if err := setWasmInstanceRemoving(wasmInstance); err != nil {
 		return nil, fmt.Errorf("failed to set removing state for wasm instance %q: %w", id, err)
 	}
+
+	// Delete wasm instance
+	if err := wasmInstance.Delete(ctx); err != nil {
+		if !errdefs.IsNotFound(err) {
+			return nil, fmt.Errorf("failed to delete wasm instance %q: %w", id, err)
+		}
+		log.G(ctx).Tracef("Remove called for wasm instance %q that does not exist", id)
+	}
+
+	// Delete wasm instance checkpoint(status)
+	if err := wasmInstance.DeleteCheckpoint(); err != nil {
+		return nil, fmt.Errorf("failed to delete checkpoint for wasm instance %q: %w", id, err)
+	}
+
+	// TODO: Delete root dir and volatile root dir
+
+	// TODO: Remove the wasm instance from container store.
+
+	// TODO: Remove the wasm instance from the name index store.
 
 	wasmInstanceRemoveTimer.WithValues(wasmInstance.Runtime.Name).UpdateSince(start)
 
