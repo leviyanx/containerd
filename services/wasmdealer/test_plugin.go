@@ -24,8 +24,8 @@ func init() {
 }
 
 func initTest(ic *plugin.InitContext) (interface{}, error) {
-  // test wasmdealer and its service
-  // rpcCreateTest(ic)
+	// test wasmdealer and its service
+	// rpcCreateTest(ic)
 
 	return nil, nil
 }
@@ -79,6 +79,5 @@ func rpcCreateTest(ic *plugin.InitContext) error {
 		return nil
 	}
 	fmt.Println("[wasmdealer-test] ", response.WasmId)
-  return nil
+	return nil
 }
-

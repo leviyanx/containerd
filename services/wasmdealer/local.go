@@ -30,17 +30,17 @@ const (
 
 func init() {
 	plugin.Register(&plugin.Registration{
-		Type:     plugin.ServicePlugin,
-		ID:       services.WasmdealerService,
+		Type: plugin.ServicePlugin,
+		ID:   services.WasmdealerService,
 		Requires: []plugin.Type{
 			plugin.RuntimePluginV2,
 		},
-		InitFn:   initLocal,
+		InitFn: initLocal,
 	})
 }
 
 func initLocal(ic *plugin.InitContext) (interface{}, error) {
-  v2r, err := ic.GetByID(plugin.RuntimePluginV2, "task")
+	v2r, err := ic.GetByID(plugin.RuntimePluginV2, "task")
 	if err != nil {
 		return nil, err
 	}
@@ -53,10 +53,10 @@ func initLocal(ic *plugin.InitContext) (interface{}, error) {
 		monitor = runtime.NewNoopMonitor()
 	}
 
-  l := &local {
-		monitor:    monitor.(runtime.TaskMonitor),
-    runtime: v2r.(runtime.PlatformRuntime),
-  }
+	l := &local{
+		monitor: monitor.(runtime.TaskMonitor),
+		runtime: v2r.(runtime.PlatformRuntime),
+	}
 
 	tasks, err := l.runtime.Tasks(ic.Context, true)
 	if err != nil {
@@ -66,18 +66,18 @@ func initLocal(ic *plugin.InitContext) (interface{}, error) {
 		l.monitor.Monitor(t, nil)
 	}
 
-  // TODO: what does RDT init do in task runtime plugin init, do i need to init it again
+	// TODO: what does RDT init do in task runtime plugin init, do i need to init it again
 	// if err := initRdt(config.RdtConfigFile); err != nil {
 	// 	log.G(ic.Context).WithError(err).Errorf("RDT initialization failed")
 	// }
 
-  return l, nil
+	return l, nil
 
 }
 
 type local struct {
-	monitor   runtime.TaskMonitor
-  runtime runtime.PlatformRuntime
+	monitor runtime.TaskMonitor
+	runtime runtime.PlatformRuntime
 }
 
 // TODO: add test cases for apis in test_plugin, seemds hard :(
@@ -91,11 +91,11 @@ func (l *local) Create(ctx context.Context, r *api.CreateTaskRequest, _ ...grpc.
 			Terminal: false,
 		},
 		Runtime:        r.Runtime,
-    RuntimeOptions: anyFromPbToTypes(r.RuntimeOptions),
+		RuntimeOptions: anyFromPbToTypes(r.RuntimeOptions),
 		TaskOptions:    anyFromPbToTypes(r.TaskOptions),
 	}
 
-  _, err := l.runtime.Get(ctx, r.WasmId)
+	_, err := l.runtime.Get(ctx, r.WasmId)
 	if err != nil && err != runtime.ErrTaskNotExists {
 		return nil, errdefs.ToGRPC(err)
 	}
@@ -118,7 +118,7 @@ func (l *local) Create(ctx context.Context, r *api.CreateTaskRequest, _ ...grpc.
 	}
 	return &api.CreateTaskResponse{
 		WasmId: r.WasmId,
-		Pid:         pid,
+		Pid:    pid,
 	}, nil
 }
 
@@ -250,11 +250,11 @@ func (l *local) Get(ctx context.Context, r *api.GetRequest, _ ...grpc.CallOption
 func (l *local) List(ctx context.Context, r *api.ListTasksRequest, _ ...grpc.CallOption) (*api.ListTasksResponse, error) {
 	resp := &api.ListTasksResponse{}
 
-  tasks, err := l.runtime.Tasks(ctx, false)
-  if err != nil {
-    return nil, errdefs.ToGRPC(err)
-  }
-  addTasks(ctx, resp, tasks)
+	tasks, err := l.runtime.Tasks(ctx, false)
+	if err != nil {
+		return nil, errdefs.ToGRPC(err)
+	}
+	addTasks(ctx, resp, tasks)
 
 	return resp, nil
 }
