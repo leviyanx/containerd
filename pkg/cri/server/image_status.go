@@ -92,8 +92,8 @@ func toCRIImage(image imagestore.Image) *runtime.Image {
 func wasmToCRIImage(wasmModule wasmmodule.WasmModule) *runtime.Image {
 	runtimeImage := &runtime.Image{
 		Id:          wasmModule.ID,
-		RepoTags:    []string{wasmModule.ID},
-		RepoDigests: []string{wasmModule.ID},
+    RepoTags:    []string{wasmModule.Name + ":latest"},
+		RepoDigests: []string{},
 		Size_:       uint64(wasmModule.Size),
 	}
 
