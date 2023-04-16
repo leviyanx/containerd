@@ -45,7 +45,15 @@ func (c *criService) RemoveWasmInstance(ctx context.Context, wasmInstance *wasmi
 		return nil, fmt.Errorf("failed to delete checkpoint for wasm instance %q: %w", id, err)
 	}
 
-	// TODO: Delete root dir and volatile root dir
+	// Delete root dir and volatile root dir
+	wasmInstanceRootDir := c.getWasmInstanceRootDir(id)
+	if err := ensureRemoveAll(ctx, wasmInstanceRootDir); err != nil {
+		return nil, fmt.Errorf("failed to remove root dir for wasm instance %q: %w", id, err)
+	}
+	volatileWasmInstanceRootDir := c.getVolatileWasmInstanceRootDir(id)
+	if err := ensureRemoveAll(ctx, volatileWasmInstanceRootDir); err != nil {
+		return nil, fmt.Errorf("failed to remove volatile root dir for wasm instance %q: %w", id, err)
+	}
 
 	// TODO: Remove the wasm instance from container store.
 
