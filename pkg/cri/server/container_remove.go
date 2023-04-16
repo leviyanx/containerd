@@ -32,6 +32,12 @@ import (
 
 // RemoveContainer removes the container.
 func (c *criService) RemoveContainer(ctx context.Context, r *runtime.RemoveContainerRequest) (_ *runtime.RemoveContainerResponse, retErr error) {
+	// NOTE: only can find wasm instance in wasmInstanceStore, will remove wasm instance, otherwise, will remove containerd container
+	// i.e. if wasm instance is not created properly, will remove containerd container continually instead report error
+	if wasmInstance, err := c.wasmInstanceStore.Get(r.GetContainerId()); err == nil {
+		return c.RemoveWasmInstance(ctx, &wasmInstance, r)
+	}
+
 	start := time.Now()
 	container, err := c.containerStore.Get(r.GetContainerId())
 	if err != nil {
