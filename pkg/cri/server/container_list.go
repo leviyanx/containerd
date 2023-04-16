@@ -24,6 +24,7 @@ import (
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	containerstore "github.com/containerd/containerd/pkg/cri/store/container"
+	"github.com/containerd/containerd/pkg/cri/store/wasminstance"
 )
 
 // ListContainers lists all containers matching the filter.
@@ -37,7 +38,11 @@ func (c *criService) ListContainers(ctx context.Context, r *runtime.ListContaine
 		containers = append(containers, toCRIContainer(container))
 	}
 
-	containers = c.filterCRIContainers(containers, r.GetFilter())
+	// List all wasm instances from store
+	wasmInstancesInStore := c.wasmInstanceStore.List()
+	for _, instance := range wasmInstancesInStore {
+		containers = append(containers, wasmToCRIContainer(instance))
+	}
 
 	containerListTimer.UpdateSince(start)
 	return &runtime.ListContainersResponse{Containers: containers}, nil
@@ -56,6 +61,22 @@ func toCRIContainer(container containerstore.Container) *runtime.Container {
 		CreatedAt:    status.CreatedAt,
 		Labels:       container.Config.GetLabels(),
 		Annotations:  container.Config.GetAnnotations(),
+	}
+}
+
+// wasmToCRIContainer converts internal wasm instance object into CRI container.
+func wasmToCRIContainer(instance wasminstance.WasmInstance) *runtime.Container {
+	status := instance.Status.Get()
+	return &runtime.Container{
+		Id:           instance.Metadata.ID,
+		PodSandboxId: instance.Metadata.SandboxID,
+		Metadata:     instance.Config.GetMetadata(),
+		Image:        instance.Config.GetImage(),
+		ImageRef:     "",
+		State:        status.State(),
+		CreatedAt:    status.CreatedAt,
+		Labels:       instance.Config.GetLabels(),
+		Annotations:  instance.Config.GetAnnotations(),
 	}
 }
 

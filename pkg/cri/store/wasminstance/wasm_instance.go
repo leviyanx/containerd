@@ -338,3 +338,14 @@ func (s *Store) Get(id string) (WasmInstance, error) {
 	}
 	return WasmInstance{}, errdefs.ErrNotFound
 }
+
+// List lists all wasm instances.
+func (s *Store) List() []WasmInstance {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	var instances []WasmInstance
+	for _, c := range s.wasmInstances {
+		instances = append(instances, c)
+	}
+	return instances
+}
