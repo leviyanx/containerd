@@ -27,7 +27,8 @@ import (
 // Test to verify wasm instance can be restarted
 func TestWasmInstanceRestart(t *testing.T) {
 	t.Logf("Create a pod config and run wasm instance")
-	sb, sbConfig := PodSandboxConfigWithCleanup(t, "sandbox1", "restart")
+	sb, sbConfig := PodSandboxConfigWithCleanup(t, "sandbox1", "restart",
+		WithPodLogDirectory("/tmp"))
 
 	wasmModule := &runtime.ImageSpec{
 		Image: "wasm-example",
@@ -45,6 +46,8 @@ func TestWasmInstanceRestart(t *testing.T) {
 		wasmModule,
 		WithTestLabels(),
 		WithTestAnnotations(),
+		WithLogPath("container1.log"),
+		WithCommand("wasi_example_main.wasm", "test"),
 	)
 	cn, err := runtimeService.CreateContainer(sb, containerConfig, sbConfig)
 	require.NoError(t, err)
