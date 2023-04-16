@@ -98,9 +98,16 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 	if wasmmodule.IsWasmModule(r.GetImage()) {
 		wasmModuleName := r.GetImage().GetImage()
 		wasmModuleUrl := r.GetImage().GetAnnotations()["wasm.module.url"]
+		// filename is required, used to name the wasm module file
 		wasmModuleFilename, filenameExist := r.GetImage().GetAnnotations()["wasm.module.filename"]
 		if !filenameExist || wasmModuleFilename == "" {
 			return nil, fmt.Errorf("wasm module filename is empty")
+		}
+		// stopSignal is optional, used to stop the wasm instance, if not specified, SIGKILL will be used
+		stopSignal, stopSignalExist := r.GetImage().GetAnnotations()["wasm.module.stopSignal"]
+		if !stopSignalExist || stopSignal == "" {
+			logrus.Warningf("stop signal is not specified, use SIGKILL as default")
+			stopSignal = "SIGKILL"
 		}
 
 		// download wasm module
@@ -144,7 +151,8 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 			Filepath: wasmModuleFilePath,
 			Size:     wasmModuleSize,
 			WasmModuleSpec: wasmmodule.WasmModuleSpec{
-				URL: wasmModuleUrl,
+				URL:        wasmModuleUrl,
+				StopSignal: stopSignal,
 			},
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),

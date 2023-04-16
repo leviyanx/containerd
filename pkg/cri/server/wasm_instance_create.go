@@ -66,6 +66,7 @@ func (c *criService) createWasmInstance(ctx context.Context, r *runtime.CreateCo
 		return nil, fmt.Errorf("failed to find wasm module %q: %w", containerConfig.GetImage().GetImage(), err)
 	}
 	meta.WasmModuleName = wasmModule.Name
+	meta.StopSignal = wasmModule.WasmModuleSpec.StopSignal
 
 	start := time.Now()
 	// Run wasm instance using the same runtime with sandbox
@@ -188,12 +189,12 @@ func (c *criService) createWasmInstance(ctx context.Context, r *runtime.CreateCo
 
 // generate basic spec for wasm
 func (c *criService) wasmSpec(
-  ctx context.Context,
-  id string,
-  wasmModule *wasmmodule.WasmModule,
+	ctx context.Context,
+	id string,
+	wasmModule *wasmmodule.WasmModule,
 	config *runtime.ContainerConfig,
-  sandboxConfig *runtime.PodSandboxConfig,
-  ociRuntime config.Runtime,
+	sandboxConfig *runtime.PodSandboxConfig,
+	ociRuntime config.Runtime,
 ) (*runtimespec.Spec, error) {
 
 	specOpts := []oci.SpecOpts{
@@ -221,7 +222,7 @@ func (c *criService) wasmSpec(
 	}
 	specOpts = append(specOpts, oci.WithEnv([]string{hostnameEnv + "=" + hostname}))
 
-  // set command
+	// set command
 	specOpts = append(specOpts, withProcessArgs(wasmModule, config))
 
 	// mount the wasm file path from host path to container path '/'
@@ -240,10 +241,10 @@ func (c *criService) wasmSpec(
 func withProcessArgs(wasmModule *wasmmodule.WasmModule, config *runtime.ContainerConfig) oci.SpecOpts {
 	return func(ctx context.Context, client oci.Client, c *containers.Container, s *runtimespec.Spec) (err error) {
 		command, args := config.GetCommand(), config.GetArgs()
-    if command == nil || len(command) == 0 {
-      filename := filepath.Base(wasmModule.GetFilepath())
-      return oci.WithProcessArgs(filename)(ctx, client, c, s)
-    }
-    return oci.WithProcessArgs(append(command, args...)...)(ctx, client, c, s)
-  }
+		if command == nil || len(command) == 0 {
+			filename := filepath.Base(wasmModule.GetFilepath())
+			return oci.WithProcessArgs(filename)(ctx, client, c, s)
+		}
+		return oci.WithProcessArgs(append(command, args...)...)(ctx, client, c, s)
+	}
 }
