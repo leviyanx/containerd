@@ -367,3 +367,26 @@ func (s *Store) List() []WasmInstance {
 	}
 	return instances
 }
+
+// Delete deletes the wasm instance from store with specified ID.
+func (s *Store) Delete(id string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	id, err := s.idIndex.Get(id)
+	if err != nil {
+		// Note: The idIndex.Delete and delete doesn't handle truncated index.
+		// So we need to return if there are error.
+		return
+	}
+
+	w := s.wasmInstances[id]
+	// close IO
+	if w.IO != nil {
+		w.IO.Close()
+	}
+	// delete id from index
+	s.idIndex.Delete(id)
+	// delete wasm instance from map
+	delete(s.wasmInstances, id)
+}
