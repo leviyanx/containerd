@@ -171,7 +171,7 @@ func (c *criService) createWasmInstance(ctx context.Context, r *runtime.CreateCo
 	defer func() {
 		if retErr != nil {
 			// Cleanup wasm instance checkpoint on error.
-			if err := wasmInstance.Delete(); err != nil {
+			if err := wasmInstance.DeleteCheckpoint(); err != nil {
 				log.G(ctx).WithError(err).Errorf("Failed to cleanup wasm instance checkpoint for %q", id)
 			}
 		}

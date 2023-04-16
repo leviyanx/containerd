@@ -27,10 +27,15 @@ import (
 
 type IOCreator func(id string) (containerdio.IO, error)
 
+type DeleteOpts func(ctx context.Context, client *containerd.Client, w WasmInstance) error
+
 type WasmInterface interface {
 	ID() string
 
 	GetWasmModule() wasmmodule.WasmModule
+
+	// Delete removes the wasm instance
+	Delete(context.Context, ...DeleteOpts) error
 
 	// NewTask creates a new task based on the wasm instance
 	NewTask(ctx context.Context, client *containerd.Client, ioCreator IOCreator) (WasmTask, error)
@@ -162,8 +167,8 @@ func NewWasmInstance(ctx context.Context, metadata Metadata, client *containerd.
 	return wasmInstance, nil
 }
 
-// Delete deletes checkpoint for the wasm instance
-func (w *WasmInstance) Delete() error {
+// DeleteCheckpoint deletes checkpoint for the wasm instance
+func (w *WasmInstance) DeleteCheckpoint() error {
 	return w.Status.Delete()
 }
 
@@ -173,6 +178,15 @@ func (w *WasmInstance) ID() string {
 
 func (w *WasmInstance) GetWasmModule() wasmmodule.WasmModule {
 	return w.WasmModule
+}
+
+// Delete deletes an existing wasm instance.
+// an error is returned if the wasm instance has running wasm tasks
+func (w *WasmInstance) Delete(ctx context.Context, opts ...DeleteOpts) error {
+	if _, err := w.loadTask(ctx, nil); err == nil {
+		return fmt.Errorf("cannot delete running wasm task %v: %w", w.ID(), errdefs.ErrFailedPrecondition)
+	}
+	return nil
 }
 
 func (w *WasmInstance) NewTask(ctx context.Context, client *containerd.Client, ioCreator IOCreator) (WasmTask, error) {
@@ -214,6 +228,10 @@ func (w *WasmInstance) NewTask(ctx context.Context, client *containerd.Client, i
 }
 
 func (w *WasmInstance) Task(ctx context.Context, ioAttach containerdio.Attach) (WasmTask, error) {
+	return w.loadTask(ctx, ioAttach)
+}
+
+func (w *WasmInstance) loadTask(ctx context.Context, ioAttach containerdio.Attach) (WasmTask, error) {
 	response, err := w.client.WasmdealerService().Get(ctx, &wasmdealer.GetRequest{
 		WasmId: w.ID(),
 	})
