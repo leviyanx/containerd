@@ -154,7 +154,7 @@ func (c *criService) createWasmInstance(ctx context.Context, r *runtime.CreateCo
 	}
 
 	status := wasminstance.Status{CreatedAt: time.Now().UnixNano()}
-	// TODO: copy spec to status
+	status = copyWasmResourcesToStatus(spec, status)
 
 	// Initialize the wasmInstance
 	// 1) Use the same runtime with sandbox
