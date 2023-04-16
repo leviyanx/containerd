@@ -58,7 +58,8 @@ func (c *criService) RemoveWasmInstance(ctx context.Context, wasmInstance *wasmi
 	// Remove the wasm instance from store
 	c.wasmInstanceStore.Delete(id)
 
-	// TODO: Remove the wasm instance from the name index store.
+	// Remove the wasm instance from the name index store.
+	c.wasmInstanceNameIndex.ReleaseByKey(id)
 
 	wasmInstanceRemoveTimer.WithValues(wasmInstance.Runtime.Name).UpdateSince(start)
 
