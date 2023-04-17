@@ -72,7 +72,7 @@ func wasmToCRIContainer(instance wasminstance.WasmInstance) *runtime.Container {
 		PodSandboxId: instance.Metadata.SandboxID,
 		Metadata:     instance.Config.GetMetadata(),
 		Image:        instance.Config.GetImage(),
-		ImageRef:     "",
+		ImageRef:     instance.Metadata.ModuleRef,
 		State:        status.State(),
 		CreatedAt:    status.CreatedAt,
 		Labels:       instance.Config.GetLabels(),
