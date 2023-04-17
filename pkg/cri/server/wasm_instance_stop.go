@@ -143,7 +143,6 @@ func (c *criService) stopWasmInstance(ctx context.Context, wasmInstance wasminst
 		log.G(ctx).Debugf("Stop wasm instance %q with signal %v time out", id, sig)
 	}
 
-	// Send SIGTERM doesn't take effect, send SIGKILL
 	log.G(ctx).Infof("Kill wasm instance %q", id)
 	if err = wasmTask.Kill(ctx, syscall.SIGKILL); err != nil && !errdefs.IsNotFound(err) {
 		return fmt.Errorf("failed to kill wasm instance %q: %w", id, err)
