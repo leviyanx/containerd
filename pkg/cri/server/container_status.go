@@ -30,6 +30,11 @@ import (
 
 // ContainerStatus inspects the container and returns the status.
 func (c *criService) ContainerStatus(ctx context.Context, r *runtime.ContainerStatusRequest) (*runtime.ContainerStatusResponse, error) {
+	// return its status if its a wasminstance found in wasminstance store
+	if wasmInstance, err := c.wasmInstanceStore.Get(r.GetContainerId()); err == nil {
+		return c.WasmInstanceStatus(ctx, &wasmInstance, r)
+	}
+
 	container, err := c.containerStore.Get(r.GetContainerId())
 	if err != nil {
 		return nil, fmt.Errorf("an error occurred when try to find container %q: %w", r.GetContainerId(), err)
