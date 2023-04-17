@@ -197,13 +197,13 @@ func PodSandboxConfig(name, ns string, opts ...PodSandboxOpts) *runtime.PodSandb
 	return config
 }
 
-func PodSandboxConfigWithCleanup(t *testing.T, name, ns string, opts ...PodSandboxOpts) (string, *runtime.PodSandboxConfig) {
+func PodSandboxConfigWithCleanup(b *testing.B, name, ns string, opts ...PodSandboxOpts) (string, *runtime.PodSandboxConfig) {
 	sbConfig := PodSandboxConfig(name, ns, opts...)
 	sb, err := runtimeService.RunPodSandbox(sbConfig, *runtimeHandler)
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		assert.NoError(t, runtimeService.StopPodSandbox(sb))
-		assert.NoError(t, runtimeService.RemovePodSandbox(sb))
+	require.NoError(b, err)
+	b.Cleanup(func() {
+		assert.NoError(b, runtimeService.StopPodSandbox(sb))
+		assert.NoError(b, runtimeService.RemovePodSandbox(sb))
 	})
 
 	return sb, sbConfig
@@ -371,6 +371,21 @@ func ContainerConfig(name, image string, opts ...ContainerOpts) *runtime.Contain
 			Name: name,
 		},
 		Image: &runtime.ImageSpec{Image: image},
+	}
+	for _, opt := range opts {
+		opt(cConfig)
+	}
+	return cConfig
+}
+
+// ContainerConfigWithWasmModule creates a container config given a name and wasm module
+// and additional container config options
+func ContainerConfigWithWasmModule(name string, image *runtime.ImageSpec, opts ...ContainerOpts) *runtime.ContainerConfig {
+	cConfig := &runtime.ContainerConfig{
+		Metadata: &runtime.ContainerMetadata{
+			Name: name,
+		},
+		Image: image,
 	}
 	for _, opt := range opts {
 		opt(cConfig)

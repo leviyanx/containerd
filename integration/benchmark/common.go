@@ -108,17 +108,34 @@ func GetImage(image int) string {
 
 // EnsureImageExists pulls the given image, ensures that no error was encountered
 // while pulling it.
-func EnsureImageExists(t *testing.T, imageName string) string {
+func EnsureImageExists(b *testing.B, imageName string) string {
 	img, err := imageService.ImageStatus(&runtime.ImageSpec{Image: imageName})
-	require.NoError(t, err)
+	require.NoError(b, err)
 	if img != nil {
-		t.Logf("Image %q already exists, not pulling.", imageName)
+		b.Logf("Image %q already exists, not pulling.", imageName)
 		return img.Id
 	}
 
-	t.Logf("Pull test image %q", imageName)
+	b.Logf("Pull test image %q", imageName)
 	imgID, err := imageService.PullImage(&runtime.ImageSpec{Image: imageName}, nil, nil)
-	require.NoError(t, err)
+	require.NoError(b, err)
+
+	return imgID
+}
+
+// EnsureWasmModuleExists pulls the given wasm module, ensures that no error was encountered
+// while pulling it.
+func EnsureWasmModuleExists(b *testing.B, image runtime.ImageSpec) string {
+	img, err := imageService.ImageStatus(&image)
+	require.NoError(b, err)
+	if img != nil {
+		b.Logf("Wasm module %q already exists, not pulling.", image.GetImage())
+		return img.Id
+	}
+
+	b.Logf("Pull test wasm module %q", image.GetImage())
+	imgID, err := imageService.PullImage(&image, nil, nil)
+	require.NoError(b, err)
 
 	return imgID
 }
