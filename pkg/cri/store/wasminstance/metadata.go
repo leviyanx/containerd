@@ -26,6 +26,10 @@ type Metadata struct {
 	// Config is the CRI container config.
 	Config *runtime.ContainerConfig
 
+	// ImageRef is the reference of wasm module used by the instance.
+	// TODO: for now its faked as WasmModuleName:latest
+	ModuleRef string
+
 	// LogPath is the wasm instance log path.
 	LogPath string
 

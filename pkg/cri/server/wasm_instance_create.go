@@ -65,6 +65,9 @@ func (c *criService) createWasmInstance(ctx context.Context, r *runtime.CreateCo
 	if err != nil {
 		return nil, fmt.Errorf("failed to find wasm module %q: %w", containerConfig.GetImage().GetImage(), err)
 	}
+
+	// TODO: for now its faked as WasmModuleName:latest
+	meta.ModuleRef = wasmModule.Name + ":latest"
 	meta.WasmModuleName = wasmModule.Name
 	meta.StopSignal = wasmModule.WasmModuleSpec.StopSignal
 
