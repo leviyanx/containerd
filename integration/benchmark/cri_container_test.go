@@ -9,7 +9,7 @@ import (
 
 func BenchmarkWasmInstanceInCri(b *testing.B) {
 	b.Logf("Create a pod config and run wasm instance")
-	sb, sbConfig := PodSandboxConfigWithCleanup(b, "sandbox1", "restart",
+	sb, sbConfig := PodSandboxConfigWithCleanup(b, "sandbox1", "wasm",
 		WithPodLogDirectory("/tmp"))
 
 	wasmModule := &runtime.ImageSpec{
@@ -48,7 +48,7 @@ func BenchmarkWasmInstanceInCri(b *testing.B) {
 
 func BenchmarkContainerInCri(b *testing.B) {
 	b.Logf("Create a pod config and run sandbox container")
-	sb, sbConfig := PodSandboxConfigWithCleanup(b, "sandbox1", "restart",
+	sb, sbConfig := PodSandboxConfigWithCleanup(b, "sandbox2", "container",
 		WithPodLogDirectory("/tmp"))
 
 	EnsureImageExists(b, pauseImage)
