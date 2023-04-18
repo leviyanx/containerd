@@ -1,0 +1,11 @@
+metadata:
+  name: wasi-demo-app
+image:
+  image: wasi-demo-app
+  annotations:
+    wasm.module.url: "https://raw.githubusercontent.com/Youtirsin/wasi-demo-apps/main/wasi-demo-app.wasm"
+    wasm.module.filename: "wasi-demo-app.wasm"
+command: ["wasi-demo-app.wasm", "daemon"]
+log_path: "wasi-demo-app.0.log"
+linux:
+

@@ -1,0 +1,8 @@
+metadata:
+  name: regular-sandbox
+  namespace: default
+  attempt: 1
+  uid: "u129q0mt6ec1aosaswh8zdbds"
+log_directory: "/temp"
+linux:
+

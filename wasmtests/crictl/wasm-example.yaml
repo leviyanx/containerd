@@ -1,0 +1,11 @@
+metadata:
+  name: wasi_example_main
+image:
+  image: wasi_example_main
+  annotations:
+    wasm.module.url: "https://github.com/leviyanx/wasm-program-image/raw/main/wasi/wasi_example_main.wasm"
+    wasm.module.filename: "wasi_example_main.wasm"
+command: ["wasi_example_main.wasm", "test"]
+log_path: "wasi_example_main_log.0.log"
+linux:
+

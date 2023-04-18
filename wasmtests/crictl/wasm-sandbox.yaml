@@ -1,0 +1,8 @@
+metadata:
+  name: wasm-sandbox
+  namespace: default
+  attempt: 1
+  uid: "hdishd83djaidwnduwk28bcsb"
+log_directory: "/temp"
+linux:
+
