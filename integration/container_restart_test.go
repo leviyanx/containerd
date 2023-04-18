@@ -19,6 +19,7 @@ package integration
 import (
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,6 +59,7 @@ func TestWasmInstanceRestart(t *testing.T) {
 
 	t.Logf("Start the wasm instance in the pod")
 	require.NoError(t, runtimeService.StartContainer(cn))
+	time.Sleep(time.Second)
 	defer func() {
 		t.Logf("Stop the wasm instance")
 		assert.NoError(t, runtimeService.StopContainer(cn, 10))
@@ -70,6 +72,7 @@ func TestWasmInstanceRestart(t *testing.T) {
 	cn, err = runtimeService.CreateContainer(sb, containerConfig, sbConfig)
 	require.NoError(t, err)
 	require.NoError(t, runtimeService.StartContainer(cn))
+	time.Sleep(time.Second)
 }
 
 // Test to verify container can be restarted

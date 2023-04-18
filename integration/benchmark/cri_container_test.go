@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/require"
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"testing"
+	"time"
 )
 
 func BenchmarkWasmInstanceInCri(b *testing.B) {
@@ -40,6 +41,7 @@ func BenchmarkWasmInstanceInCri(b *testing.B) {
 
 	b.Logf("Start the wasm instance in the pod")
 	require.NoError(b, runtimeService.StartContainer(cn))
+	time.Sleep(time.Second)
 	defer func() {
 		b.Logf("Stop the wasm instance")
 		assert.NoError(b, runtimeService.StopContainer(cn, 1))
@@ -68,6 +70,7 @@ func BenchmarkContainerInCri(b *testing.B) {
 		assert.NoError(b, runtimeService.RemoveContainer(cn))
 	}()
 	require.NoError(b, runtimeService.StartContainer(cn))
+	time.Sleep(time.Second)
 	defer func() {
 		b.Logf("Stop the container")
 		assert.NoError(b, runtimeService.StopContainer(cn, 1))
