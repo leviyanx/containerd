@@ -5,4 +5,4 @@ make clean
 make GO_BUILDTAGS="no_btrfs"
 
 # start containerd
-sudo ./bin/containerd &
+./bin/containerd &

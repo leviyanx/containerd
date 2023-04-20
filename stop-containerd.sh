@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # stop containerd
-kill $(ps aux | grep '[s]udo ./bin/containerd' | awk '{print $2}')
+kill -9 $(ps aux | grep './bin/containerd' | grep -v grep | awk '{print $2}')
 
 sleep 2
 
-sudo systemctl stop containerd
+systemctl stop containerd
