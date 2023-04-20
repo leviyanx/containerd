@@ -10,6 +10,7 @@ import (
 	"github.com/containerd/containerd/containers"
 	"github.com/containerd/containerd/log"
 	"github.com/containerd/containerd/oci"
+	"github.com/containerd/containerd/pkg/cri/annotations"
 	"github.com/containerd/containerd/pkg/cri/config"
 	cio "github.com/containerd/containerd/pkg/cri/io"
 	customopts "github.com/containerd/containerd/pkg/cri/opts"
@@ -29,6 +30,12 @@ func (c *criService) createWasmInstance(ctx context.Context, r *runtime.CreateCo
 		return nil, fmt.Errorf("failed to find sandbox id %q: %w", r.GetPodSandboxId(), err)
 	}
 	sandboxID := sandbox.ID
+	s, err := sandbox.Container.Task(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get sandbox container task: %w", err)
+	}
+	sandboxPid := s.Pid()
+
 	// TODO: get sandbox container task when creating spec
 
 	// Generate unique id and name for the wasm instance and reserve the name.
@@ -114,7 +121,7 @@ func (c *criService) createWasmInstance(ctx context.Context, r *runtime.CreateCo
 	}
 	log.G(ctx).Debugf("Using wasm runtime %+v  for sandbox %q and wasm instance %q", wasmRuntime, sandboxID, id)
 
-	spec, err := c.wasmSpec(ctx, id, &wasmModule, containerConfig, sandboxConfig, wasmRuntime)
+	spec, err := c.wasmSpec(ctx, id, sandboxID, sandboxPid, &wasmModule, containerConfig, sandboxConfig, wasmRuntime)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate wasm %q spec: %w", id, err)
 	}
@@ -194,6 +201,8 @@ func (c *criService) createWasmInstance(ctx context.Context, r *runtime.CreateCo
 func (c *criService) wasmSpec(
 	ctx context.Context,
 	id string,
+	sandboxID string,
+	sandboxPid uint32,
 	wasmModule *wasmmodule.WasmModule,
 	config *runtime.ContainerConfig,
 	sandboxConfig *runtime.PodSandboxConfig,
@@ -235,6 +244,15 @@ func (c *criService) wasmSpec(
 			HostPath:      filepath.Dir(wasmModule.GetFilepath()),
 		},
 	}
+
+	// namspace
+	// Default target PID namespace is the sandbox PID.
+	// not supports taking another container's pid as namespace yet
+	securityContext := config.GetLinux().GetSecurityContext()
+	specOpts = append(specOpts, customopts.WithPodNamespaces(securityContext, sandboxPid, sandboxPid))
+
+	// annotations
+	specOpts = append(specOpts, customopts.WithAnnotation(annotations.SandboxID, sandboxID))
 
 	// use empty container config and selinux label.to get necessary work done
 	specOpts = append(specOpts, customopts.WithMounts(c.os, &runtime.ContainerConfig{}, volumeMounts, ""))
