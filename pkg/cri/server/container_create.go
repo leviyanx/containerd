@@ -19,7 +19,6 @@ package server
 import (
 	"errors"
 	"fmt"
-	"github.com/containerd/containerd/pkg/cri/store/wasmmodule"
 	"path/filepath"
 	"time"
 
@@ -52,8 +51,8 @@ func init() {
 func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateContainerRequest) (_ *runtime.CreateContainerResponse, retErr error) {
 	config := r.GetConfig()
 
-	// when the image is wasm module, create a wasm instance instead of a container
-	if wasmmodule.IsWasmModule(config.GetImage()) {
+	// Based on annotation in sandbox config, create a wasm instance instead of a container
+	if IsWasm(r.GetSandboxConfig().GetAnnotations()) {
 		return c.createWasmInstance(ctx, r)
 	}
 

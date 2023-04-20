@@ -89,3 +89,9 @@ func copyWasmResourcesToStatus(spec *runtimespec.Spec, status wasminstancestore.
 	}
 	return status
 }
+
+func IsWasm(annotations map[string]string) bool {
+	// if the annotation has the wasm module url item, it is a wasm module or instance
+	_, urlExists := annotations["wasm.module.url"]
+	return urlExists
+}

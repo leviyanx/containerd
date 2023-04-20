@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/errdefs"
-	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"sync"
 	"time"
 )
@@ -59,12 +58,6 @@ func (w *WasmModule) GetCreatedAt() time.Time {
 
 func (w *WasmModule) GetUpdatedAt() time.Time {
 	return w.UpdatedAt
-}
-
-func IsWasmModule(image *v1.ImageSpec) bool {
-	// if the annotation has the wasm module url item, it is a wasm module
-	_, urlExists := image.GetAnnotations()["wasm.module.url"]
-	return urlExists
 }
 
 type WasmModuleSpec struct {

@@ -94,8 +94,8 @@ import (
 // PullImage pulls an image with authentication config.
 func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest) (*runtime.PullImageResponse, error) {
 	logrus.Infof("Image %q has wasm annotation: %+v", r.GetImage().GetImage(), r.GetImage().GetAnnotations())
-	// Check whether the imageSpec contains a "wasm." annotation.
-	if wasmmodule.IsWasmModule(r.GetImage()) {
+	// Check whether the imageSpec contains a wasm related annotation.
+	if IsWasm(r.GetImage().GetAnnotations()) {
 		wasmModuleName := r.GetImage().GetImage()
 		// check whether module already exists
 		resolvedID, err := c.wasmModuleStore.Resolve(wasmModuleName)
