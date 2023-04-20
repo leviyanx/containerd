@@ -161,14 +161,16 @@ func (s *Store) Delete(name string) error {
 	return nil
 }
 
-func (s *Store) Get(name string) (WasmModule, error) {
-	id, err := s.Resolve(name)
-	if err != nil {
-		return WasmModule{}, errdefs.ErrNotFound
+// Get gets the wasm module by name or id.
+func (s *Store) Get(nameOrId string) (WasmModule, error) {
+	// try name first
+	if id, err := s.Resolve(nameOrId); err == nil {
+		return s.store.get(id)
 	}
 
-	return s.store.get(id)
+	return s.store.get(nameOrId)
 }
+
 func (s *Store) List() []WasmModule {
 	return s.store.list()
 }
