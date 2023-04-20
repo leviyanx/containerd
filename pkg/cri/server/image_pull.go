@@ -97,6 +97,13 @@ func (c *criService) PullImage(ctx context.Context, r *runtime.PullImageRequest)
 	// Check whether the imageSpec contains a "wasm." annotation.
 	if wasmmodule.IsWasmModule(r.GetImage()) {
 		wasmModuleName := r.GetImage().GetImage()
+    // check whether module already exists
+    resolvedID, err := c.wasmModuleStore.Resolve(wasmModuleName)
+    if err == nil {
+			logrus.Warningf("image already exists, for now we ignore pulling.")
+      return &runtime.PullImageResponse{ImageRef: resolvedID}, nil
+    }
+
 		wasmModuleUrl := r.GetImage().GetAnnotations()["wasm.module.url"]
 		// filename is required, used to name the wasm module file
 		wasmModuleFilename, filenameExist := r.GetImage().GetAnnotations()["wasm.module.filename"]
