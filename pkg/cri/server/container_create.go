@@ -51,8 +51,8 @@ func init() {
 func (c *criService) CreateContainer(ctx context.Context, r *runtime.CreateContainerRequest) (_ *runtime.CreateContainerResponse, retErr error) {
 	config := r.GetConfig()
 
-	// Based on annotation in sandbox config, create a wasm instance instead of a container
-	if IsWasm(r.GetSandboxConfig().GetAnnotations()) {
+	// Based on annotation in sandbox config or image spec, create a wasm instance instead of a container
+	if IsWasm(r.GetSandboxConfig().GetAnnotations()) || IsWasm(r.GetConfig().GetImage().GetAnnotations()) {
 		return c.createWasmInstance(ctx, r)
 	}
 
